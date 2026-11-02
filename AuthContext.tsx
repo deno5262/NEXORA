@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, Profile } from './supabase'
-type Ctx = { session: Session | null; profile: Profile | null; theme: string; loading: boolean; setTheme: (t: string) => Promise<void>; refresh: () => Promise<void> }
+type Ctx = { session: Session | null; profile: Profile | null; theme: string; loading: boolean; setTheme: (t: string) => Promise<void>; preview: (t: string) => void; refresh: () => Promise<void> }
 const C = createContext<Ctx>(null as unknown as Ctx)
 export const useAuth = () => useContext(C)
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -28,5 +28,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     apply(t)
     if (session) await supabase.from('user_settings').update({ theme: t, updated_at: new Date().toISOString() }).eq('user_id', session.user.id)
   }
-  return <C.Provider value={{ session, profile, theme, loading, setTheme, refresh: () => load(session) }}>{children}</C.Provider>
+  return <C.Provider value={{ session, profile, theme, loading, setTheme, preview: apply, refresh: () => load(session) }}>{children}</C.Provider>
 }

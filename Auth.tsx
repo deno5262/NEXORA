@@ -16,7 +16,7 @@ export default function Auth({ mode }: { mode: 'login' | 'signup' | 'reset' }) {
     setBusy(true)
     const r = mode === 'login' ? await supabase.auth.signInWithPassword({ email: f.email, password: f.password })
       : mode === 'signup' ? await supabase.auth.signUp({ email: f.email, password: f.password, options: { data: { full_name: f.name, username: f.username }, emailRedirectTo: location.origin } })
-      : await supabase.auth.resetPasswordForEmail(f.email, { redirectTo: location.origin + '/settings/security' })
+      : await supabase.auth.resetPasswordForEmail(f.email, { redirectTo: location.origin + '/settings' })
     setBusy(false)
     if (r.error) return setMsg({ ok: false, t: r.error.message })
     if (mode === 'signup') setMsg({ ok: true, t: 'Check your email to verify your account, then log in.' })
