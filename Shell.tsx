@@ -18,7 +18,7 @@ export default function Shell() {
     <main className="flex-1 px-4 pb-28 pt-4"><Outlet /></main>
     <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-xl grid-cols-4 items-center border-t border-line bg-bg/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
       {item('/', Home, 'Home')}{item('/stories', CircleDot, 'Stories')}
-      <button aria-label="Create" onClick={() => setOpen(true)} className="mx-auto -mt-6 grid h-14 w-14 place-items-center rounded-full bg-accent text-black shadow-lg"><Plus size={28} /></button>
+      <button aria-label="Create" onClick={() => setOpen(true)} className="mx-auto -mt-6 grid h-14 w-14 place-items-center rounded-full bg-accent text-on shadow-lg"><Plus size={28} /></button>
       {item('/notifications', Bell, 'Notifications')}
     </nav>
     {open && <div className="fixed inset-0 z-30 flex items-end bg-black/60" onClick={() => setOpen(false)}>

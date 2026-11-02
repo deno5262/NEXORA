@@ -9,7 +9,7 @@ export default function Home() {
       <Link to="/create/story" className="flex w-16 shrink-0 flex-col items-center gap-1 text-xs">
         <span className="relative grid h-16 w-16 place-items-center overflow-hidden rounded-full border border-line bg-surface font-bold">
           {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : (profile?.full_name || '?')[0]?.toUpperCase()}
-          <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full bg-accent text-black"><Plus size={14} /></span></span>Your Story</Link>
+          <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full bg-accent text-on"><Plus size={14} /></span></span>Your Story</Link>
     </div>
     <p className="py-16 text-center text-mute">No photo posts yet. Photo posts arrive in Phase 2 — tap + to get started.</p>
   </div>)
