@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
 import { AuthProvider } from './AuthContext'
 import Guard from './Guard'
+import UpdateGate from './UpdateGate'
 import Shell from './Shell'
 import Auth from './Auth'
 import Home from './Home'
@@ -14,7 +15,7 @@ import Settings from './Settings'
 import EditProfile from './EditProfile'
 import Profile from './Profile'
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode><BrowserRouter><AuthProvider><Routes>
+  <React.StrictMode><BrowserRouter><AuthProvider><UpdateGate /><Routes>
     <Route path="/login" element={<Auth mode="login" />} /><Route path="/signup" element={<Auth mode="signup" />} /><Route path="/reset" element={<Auth mode="reset" />} />
     <Route element={<Guard />}><Route element={<Shell />}>
       <Route index element={<Home />} />
