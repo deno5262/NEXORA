@@ -1,0 +1,11 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+:root,[data-theme=neon_cyan]{--bg:#0b0f14;--surface:#141a22;--line:#222c38;--ink:#e6edf3;--mute:#8896a6;--accent:#00e5ff}
+[data-theme=cyber_purple]{--bg:#0d0a14;--surface:#171224;--line:#2a2140;--accent:#b36bff}
+[data-theme=toxic_green]{--bg:#09100b;--surface:#101a13;--line:#1d2e22;--accent:#39ff6a}
+[data-theme=crimson]{--bg:#120a0c;--surface:#1d1215;--line:#34202a;--accent:#ff3b5c}
+[data-theme=ice_blue]{--bg:#0a0f16;--surface:#111a26;--line:#1e2d42;--accent:#7cc4ff}
+[data-theme=comfortable_dark]{--bg:#17181b;--surface:#1f2024;--line:#2c2e33;--ink:#cfd2d6;--mute:#8b8f96;--accent:#8fa8a0}
+html,body,#root{height:100%}body{background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
+.btn{@apply rounded-xl bg-accent px-4 py-2.5 font-semibold text-black disabled:opacity-50}
+.input{@apply w-full rounded-xl border border-line bg-surface px-3 py-2.5 outline-none focus:border-accent}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
