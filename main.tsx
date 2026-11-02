@@ -8,6 +8,8 @@ import Shell from './Shell'
 import Auth from './Auth'
 import Home from './Home'
 import Soon from './Soon'
+import CreatePost from './CreatePost'
+import CreatePost from './CreatePost'
 import Settings from './Settings'
 import EditProfile from './EditProfile'
 import Profile from './Profile'
@@ -20,7 +22,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path="notifications" element={<Soon title="Notifications" phase={4} />} />
       <Route path="search" element={<Soon title="Search" phase={2} />} />
       <Route path="textora" element={<Soon title="TEXTORA" phase={3} note="Messaging module." />} />
-      <Route path="create/post" element={<Soon title="Create Photo Post" phase={2} />} />
+      <Route path="create/post" element={<CreatePost />} />
       <Route path="create/story" element={<Soon title="Create Story" phase={2} />} />
       <Route path="profile" element={<Profile />} />
       <Route path="settings" element={<Settings />} /><Route path="edit-profile" element={<EditProfile />} />

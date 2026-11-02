@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
+import Feed from './Feed'
 import { useAuth } from './AuthContext'
+import Feed from './Feed'
 export default function Home() {
   const { profile } = useAuth()
   return (<div className="flex flex-col gap-5">
@@ -11,6 +13,6 @@ export default function Home() {
           {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : (profile?.full_name || '?')[0]?.toUpperCase()}
           <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full bg-accent text-on"><Plus size={14} /></span></span>Your Story</Link>
     </div>
-    <p className="py-16 text-center text-mute">No photo posts yet. Photo posts arrive in Phase 2 — tap + to get started.</p>
+    <Feed />
   </div>)
 }

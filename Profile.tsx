@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext'
 import { uploadProfileImage } from './image'
 import { REL } from './EditProfile'
 import { countryName, countryFlag } from './countries'
+import Feed from './Feed'
 import LevelBadge, { levelColor } from './LevelBadge'
 const LEVELS: [string, number][] = [['Bronze', 0], ['Silver', 100], ['Gold', 300], ['Platinum', 700], ['Diamond', 1500], ['Elite', 3000]]
 const TABS = ['Posts', 'Photos', 'Stories', 'About', 'Friends']
@@ -60,6 +61,6 @@ export default function Profile() {
       <div className="py-6 text-center text-mute">
         {tab === 'About' ? <div className="flex flex-col gap-3">{rows.length ? <Rows list={rows} /> : <p>No details added yet.</p>}
           {profile.lat != null && profile.lng != null && <iframe title="Map" className="h-56 w-full rounded-xl border border-line" src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(profile.lng) - 0.03},${Number(profile.lat) - 0.03},${Number(profile.lng) + 0.03},${Number(profile.lat) + 0.03}&layer=mapnik&marker=${profile.lat},${profile.lng}`} />}</div>
-          : `${tab} are not built yet (next part of Phase 2).`}</div>
+          : tab === 'Posts' ? <Feed authorId={profile.id} /> : `${tab} are not built yet (next part of Phase 2).`}</div>
     </div></div>)
 }
