@@ -25,7 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path="create/post" element={<CreatePost />} />
       <Route path="create/story" element={<Soon title="Create Story" phase={2} />} />
       <Route path="profile" element={<Profile />} />
-      <Route path="settings" element={<Settings />} /><Route path="edit-profile" element={<EditProfile />} />
+      <Route path="settings/:section?" element={<Settings />} /><Route path="edit-profile" element={<EditProfile />} />
     </Route></Route>
   </Routes></AuthProvider></BrowserRouter></React.StrictMode>)
 if ('serviceWorker' in navigator && import.meta.env.PROD) addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))

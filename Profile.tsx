@@ -34,7 +34,7 @@ export default function Profile() {
     <I size={20} className="shrink-0 text-accent" /><div className="min-w-0"><div className="text-xs text-mute">{k}</div>{href ? <a href={href} target="_blank" rel="noreferrer" className="text-ink underline decoration-accent">{v}</a> : <div className="text-ink">{v}</div>}</div></li>)}</ul>
   const R = 54, C = 2 * Math.PI * R
   return (<div className="-mx-4 -mt-4">
-    <div className="relative h-40 bg-surface"><Link to="/settings" aria-label="Settings" className="absolute right-3 top-2 rounded-full bg-bg/80 p-2"><Cog size={18} /></Link>
+    <div className="relative h-40 bg-surface">
       {profile.cover_url && <img src={profile.cover_url} alt="" className="h-full w-full object-cover" />}
       <button onClick={() => cv.current?.click()} aria-label="Change cover" className="absolute bottom-2 right-3 rounded-full bg-bg/80 p-2"><Camera size={18} /></button>
     </div>
