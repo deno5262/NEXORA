@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './index.css'
 import { AuthProvider } from './AuthContext'
 import Guard from './Guard'
@@ -9,6 +9,9 @@ import Shell from './Shell'
 import Auth from './Auth'
 import Home from './Home'
 import Soon from './Soon'
+import Activity from './Activity'
+import PostPage from './PostPage'
+import Saved from './Saved'
 import CreatePost from './CreatePost'
 import Settings from './Settings'
 import EditProfile from './EditProfile'
@@ -19,7 +22,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <Route element={<Guard />}><Route element={<Shell />}>
       <Route index element={<Home />} />
       <Route path="stories" element={<Soon title="Stories" phase={2} />} />
-      <Route path="notifications" element={<Soon title="Notifications" phase={4} />} />
+      <Route path="notifications" element={<Navigate to="/activity" replace />} /><Route path="activity" element={<Activity />} /><Route path="post/:id" element={<PostPage />} /><Route path="saved" element={<Saved />} />
       <Route path="search" element={<Soon title="Search" phase={2} />} />
       <Route path="textora" element={<Soon title="TEXTORA" phase={3} note="Messaging module." />} />
       <Route path="create/post" element={<CreatePost />} />

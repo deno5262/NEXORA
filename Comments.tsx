@@ -6,12 +6,15 @@ import { useAuth } from './AuthContext'
 import { Av, ago } from './ui'
 import RichText from './RichText'
 import MentionInput from './MentionInput'
-type C = { id: string; parent_id: string | null; body: string; created_at: string; image_path: string | null; audio_path: string | null; author_id: string; author: { username: string; full_name: string; avatar_url: string | null }; comment_reactions: { user_id: string }[] }
+import { VoicePlayer, computePeaks } from './Voice'
+type C = { id: string; parent_id: string | null; body: string; created_at: string; image_path: string | null; audio_path: string | null; audio_peaks: number[] | null; audio_ms: number | null; author_id: string; author: { username: string; full_name: string; avatar_url: string | null }; comment_reactions: { user_id: string }[] }
 export default function CommentSheet({ postId, onClose, onCount }: { postId: string; onClose: () => void; onCount: (n: number) => void }) {
   const { session } = useAuth(); const uid = session!.user.id
   const [list, setList] = useState<C[]>([]); const [urls, setUrls] = useState<Record<string, string>>({}); const [body, setBody] = useState(''); const [file, setFile] = useState<File | null>(null)
   const [reply, setReply] = useState<C | null>(null); const [open, setOpen] = useState<Set<string>>(new Set()); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
   const [voice, setVoice] = useState<Blob | null>(null); const [recording, setRecording] = useState(false); const [peek, setPeek] = useState(false)
+  const [vp, setVp] = useState<{ peaks: number[] | null; ms: number } | null>(null)
+  useEffect(() => { if (!voice) { setVp(null); return } computePeaks(voice).then(setVp) }, [voice])
   const inputRef = useRef<any>(null); const recRef = useRef<MediaRecorder | null>(null); const recTimer = useRef(0)
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
   const voiceUrl = useMemo(() => (voice ? URL.createObjectURL(voice) : null), [voice])
@@ -27,7 +30,7 @@ export default function CommentSheet({ postId, onClose, onCount }: { postId: str
   const stopRec = () => { window.clearTimeout(recTimer.current); if (recRef.current?.state === 'recording') recRef.current.stop() }
   const startReply = (c: C) => { setReply(c); if (!body.trim()) setBody(`@${c.author.username} `); setTimeout(() => inputRef.current?.focus(), 60) }
   const load = async () => {
-    const { data, error } = await supabase.from('comments').select('id,parent_id,body,created_at,image_path,audio_path,author_id,author:profiles!comments_author_id_fkey(username,full_name,avatar_url),comment_reactions(user_id)').eq('post_id', postId).order('created_at')
+    const { data, error } = await supabase.from('comments').select('id,parent_id,body,created_at,image_path,audio_path,audio_peaks,audio_ms,author_id,author:profiles!comments_author_id_fkey(username,full_name,avatar_url),comment_reactions(user_id)').eq('post_id', postId).order('created_at')
     if (error) return setErr(error.message)
     const rows = (data ?? []) as any as C[]; setList(rows); onCount(rows.length)
     const paths = rows.flatMap(r => [r.image_path, r.audio_path]).filter(Boolean) as string[]
@@ -40,7 +43,8 @@ export default function CommentSheet({ postId, onClose, onCount }: { postId: str
     try {
       if (file) { image_path = `${uid}/c-${crypto.randomUUID()}.jpg`; const { error } = await supabase.storage.from('posts').upload(image_path, await compress(file, 1024), { contentType: 'image/jpeg' }); if (error) throw error }
       if (voice) { const mime = voice.type.split(';')[0] || 'audio/webm'; audio_path = `${uid}/c-${crypto.randomUUID()}.${mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm'}`; const { error } = await supabase.storage.from('posts').upload(audio_path, voice, { contentType: mime }); if (error) throw error }
-      const { error } = await supabase.from('comments').insert({ post_id: postId, author_id: uid, parent_id: reply ? reply.parent_id ?? reply.id : null, body: t, image_path, audio_path })
+      const wf = voice ? await computePeaks(voice) : null
+      const { error } = await supabase.from('comments').insert({ post_id: postId, author_id: uid, parent_id: reply ? reply.parent_id ?? reply.id : null, body: t, image_path, audio_path, audio_peaks: wf?.peaks ?? null, audio_ms: wf ? Math.round(wf.ms) : null })
       if (error) { const bad = [image_path, audio_path].filter(Boolean) as string[]; if (bad.length) await supabase.storage.from('posts').remove(bad); throw error }
       if (reply) setOpen(new Set(open).add(reply.parent_id ?? reply.id))
       setBody(''); setFile(null); setVoice(null); setReply(null); await load()
@@ -63,7 +67,7 @@ export default function CommentSheet({ postId, onClose, onCount }: { postId: str
     return (<div key={c.id} className={`flex gap-2 ${child ? 'ml-10' : ''}`}><Av a={c.author} /><div className="min-w-0 flex-1">
       <b className="text-sm">{c.author.full_name || c.author.username}</b>
       {c.body && <p className="break-words text-sm"><RichText text={c.body} /></p>}
-      {c.audio_path && urls[c.audio_path] && <audio controls preload="none" src={urls[c.audio_path]} className="mt-1 h-9 w-full max-w-[240px]" />}
+      {c.audio_path && urls[c.audio_path] && <div className="mt-1"><VoicePlayer src={urls[c.audio_path]} peaks={c.audio_peaks} ms={c.audio_ms} /></div>}
       {c.image_path && urls[c.image_path] && <img src={urls[c.image_path]} alt="" className="mt-1 max-h-60 rounded-xl" />}
       <div className="flex items-center gap-4 text-xs text-mute"><span>{ago(c.created_at)}</span><button onClick={() => startReply(c)}>Reply</button>
         {c.author_id === uid && <button onClick={() => del(c)}>Delete</button>}
@@ -80,7 +84,7 @@ export default function CommentSheet({ postId, onClose, onCount }: { postId: str
       <div className="border-t border-line p-3">
         {reply && <p className="mb-1 flex justify-between text-xs text-mute">Replying to @{reply.author.username}<button onClick={() => setReply(null)}>Cancel</button></p>}
         {preview && <div className="mb-2 flex items-center gap-2"><button type="button" onClick={() => setPeek(true)}><img src={preview} alt="Selected" className="h-16 w-16 rounded-lg border border-line object-cover" /></button><button type="button" className="text-xs text-mute" onClick={() => setFile(null)}>Remove photo</button></div>}
-        {voiceUrl && <div className="mb-2 flex items-center gap-2"><audio controls src={voiceUrl} className="h-9 flex-1" /><button type="button" className="text-xs text-mute" onClick={() => setVoice(null)}>Remove</button></div>}
+        {voiceUrl && <div className="mb-2 flex items-center gap-2"><div className="flex-1"><VoicePlayer src={voiceUrl} peaks={vp?.peaks ?? null} ms={vp ? vp.ms : null} /></div><button type="button" className="text-xs text-mute" onClick={() => setVoice(null)}>Remove</button></div>}
         {recording && <p className="mb-1 text-sm text-red-400">Recording… tap ■ to stop (max 60s)</p>}
         {busy && <p className="mb-1 text-xs text-mute">Posting comment…</p>}
         {err && <p role="alert" className="mb-1 text-sm text-red-400">{err}</p>}

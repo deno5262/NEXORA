@@ -11,3 +11,4 @@ export function playPop() {
     o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.17); setTimeout(() => ctx.close(), 300)
   } catch { /* sound is optional */ }
 }
+export const short = (n: number) => (n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + 'K' : String(n))

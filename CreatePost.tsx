@@ -28,7 +28,6 @@ export default function CreatePost() {
       {files.length < 10 && <label className="grid aspect-square cursor-pointer place-items-center rounded-xl border border-dashed border-line text-mute"><ImagePlus /><input type="file" accept="image/*" multiple hidden onChange={add} /></label>}</div>
     <MentionInput multiline rows={3} maxLength={2000} placeholder="Write a caption (optional). Use @ to mention, # for hashtags" value={caption} onChange={setCaption} />
     <select className="input" value={audience} onChange={e => setAudience(e.target.value)}><option value="public">Public</option><option value="friends">Friends</option><option value="only_me">Only me</option></select>
-    <select className="input" value={fit} onChange={e => setFit(e.target.value)}><option value="crop">Photo display: fit frame (tall photos are cropped)</option><option value="full">Photo display: show full photo</option></select>
     {err && <p role="alert" className="text-red-400">{err}</p>}
     <button className="btn" disabled={busy}>{busy ? 'Publishing…' : 'Publish'}</button></form>)
 }

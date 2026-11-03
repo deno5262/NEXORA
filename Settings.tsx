@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp } from 'lucide-react'
+import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as Img, Bookmark } from 'lucide-react'
 import { supabase, THEMES, THEME_COLORS } from './supabase'
 import { useAuth } from './AuthContext'
 import { soundOn } from './ui'
@@ -45,15 +45,24 @@ function Reactions() {
       <button onClick={() => pick('love')} className={`flex items-center justify-center gap-2 rounded-xl border p-3 ${q === 'love' ? 'border-accent' : 'border-line'}`}><Heart className="text-red-500" fill="currentColor" size={20} />Love</button></div></section>
     <label className="flex items-center justify-between rounded-xl border border-line p-3">Reaction sound<input type="checkbox" checked={sound} onChange={e => { localStorage.setItem('reactionSound', e.target.checked ? 'on' : 'off'); setSound(e.target.checked) }} /></label></div>)
 }
+function Photos() {
+  const [m, setM] = useState(localStorage.getItem('photoMode') || 'smart')
+  const opts: [string, string, string][] = [['smart', 'Smart preview', 'Very tall photos are cropped in the feed. Tap a photo to see it in full.'], ['original', 'Original ratio', 'Photos keep their own shape (extremely tall ones are capped).'], ['full', 'Full image', 'Every photo is shown completely, never cropped.']]
+  return (<div className="flex flex-col gap-2"><h2 className="font-bold">Photo display</h2>
+    {opts.map(([k, t, d]) => <button key={k} onClick={() => { localStorage.setItem('photoMode', k); setM(k) }} className={`rounded-xl border p-3 text-left ${m === k ? 'border-accent' : 'border-line'}`}><b className={m === k ? 'text-accent' : ''}>{t}</b><p className="text-sm text-mute">{d}</p></button>)}
+    <p className="text-sm text-mute">Small photos are never enlarged.</p></div>)
+}
 export default function Settings() {
   const { section } = useParams()
   if (section === 'account') return <Account />
   if (section === 'security') return <Security />
   if (section === 'appearance') return <Theme />
   if (section === 'reactions') return <Reactions />
-  const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds']]
+  if (section === 'photos') return <Photos />
+  const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds'], ['photos', Img, 'Photo display']]
   return (<div className="flex flex-col gap-3"><h1 className="text-xl font-bold">Settings</h1>
     {rows.map(([id, I, label]) => <Link key={id} to={`/settings/${id}`} className="flex items-center gap-3 rounded-xl border border-line p-3"><I className="text-accent" /><span className="flex-1">{label}</span><ChevronRight className="text-mute" /></Link>)}
+    <Link to="/saved" className="flex items-center gap-3 rounded-xl border border-line p-3"><Bookmark className="text-accent" /><span className="flex-1">Saved posts</span><ChevronRight className="text-mute" /></Link>
     <button onClick={() => supabase.auth.signOut()} className="flex items-center gap-3 rounded-xl border border-line p-3 text-red-400"><LogOut />Log out</button>
     <p className="text-sm text-mute">Not built yet: privacy, notifications, blocked users, data & storage, account deactivation and deletion.</p></div>)
 }

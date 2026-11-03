@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { supabase, configured } from './supabase'
 import { useAuth } from './AuthContext'
+import Logo from './Logo'
 export default function Auth({ mode }: { mode: 'login' | 'signup' | 'reset' }) {
   const { session } = useAuth()
   const [f, setF] = useState({ email: '', password: '', name: '', username: '', code: '' })
@@ -35,7 +36,7 @@ export default function Auth({ mode }: { mode: 'login' | 'signup' | 'reset' }) {
     setBusy(false)
   }
   return (<div className="mx-auto flex min-h-full max-w-sm flex-col justify-center gap-4 p-6">
-    <div><h1 className="text-3xl font-extrabold tracking-widest text-accent">NEXORA</h1><p className="text-mute">{mode === 'reset' ? 'Reset your password' : 'One World. One Connection.'}</p></div>
+    <div><h1 className="text-3xl font-extrabold tracking-widest"><Logo /></h1><p className="text-mute">{mode === 'reset' ? 'Reset your password' : 'One World. One Connection.'}</p></div>
     <form onSubmit={submit} className="flex flex-col gap-3">
       {mode === 'signup' && <><input className="input" placeholder="Full name" value={f.name} onChange={set('name')} required /><input className="input" placeholder="Username" value={f.username} onChange={set('username')} required /></>}
       <input className="input" type="email" placeholder="Email" value={f.email} onChange={set('email')} disabled={sent} required />
