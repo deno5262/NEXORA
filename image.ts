@@ -1,10 +1,23 @@
 import { supabase } from './supabase'
+async function decode(file: File): Promise<{ src: CanvasImageSource; w: number; h: number; done: () => void }> {
+  try { const b = await createImageBitmap(file); return { src: b, w: b.width, h: b.height, done: () => b.close() } } catch { /* try the <img> path */ }
+  const url = URL.createObjectURL(file)
+  try {
+    const img = new Image(); img.src = url; await img.decode()
+    return { src: img, w: img.naturalWidth, h: img.naturalHeight, done: () => URL.revokeObjectURL(url) }
+  } catch (e) { URL.revokeObjectURL(url); throw e }
+}
 export async function compress(file: File, max: number): Promise<Blob> {
-  const bmp = await createImageBitmap(file)
-  const r = Math.min(1, max / Math.max(bmp.width, bmp.height))
-  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * r); c.height = Math.round(bmp.height * r)
-  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height)
-  return new Promise((res, rej) => c.toBlob(b => (b ? res(b) : rej(new Error('Could not process image'))), 'image/jpeg', 0.82))
+  try {
+    const d = await decode(file)
+    const r = Math.min(1, max / Math.max(d.w, d.h))
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(d.w * r)); c.height = Math.max(1, Math.round(d.h * r))
+    c.getContext('2d')!.drawImage(d.src, 0, 0, c.width, c.height); d.done()
+    return await new Promise<Blob>((res, rej) => c.toBlob(b => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/jpeg', 0.82))
+  } catch {
+    if (file.type === 'image/jpeg' && file.size <= 10 * 1024 * 1024) return file
+    throw new Error('This photo could not be processed. Please choose a JPG or PNG photo (not HEIC) or take a screenshot of it.')
+  }
 }
 export async function uploadProfileImage(uid: string, kind: 'avatar' | 'cover', file: File): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('Please choose an image file.')
