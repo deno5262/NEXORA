@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
 import Feed from './Feed'
 import { useAuth } from './AuthContext'
-import Feed from './Feed'
 export default function Home() {
   const { profile } = useAuth()
   return (<div className="flex flex-col gap-5">
