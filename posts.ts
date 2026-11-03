@@ -1,9 +1,9 @@
 import { supabase } from './supabase'
 import { compress } from './image'
 export type Author = { id: string; username: string; full_name: string; avatar_url: string | null; level: string }
-export type Post = { id: string; caption: string; audience: string; created_at: string; author: Author; media: { path: string; url?: string }[]; likes: string[]; comments: number }
+export type Post = { id: string; caption: string; audience: string; created_at: string; author: Author; media: { path: string; url?: string }[]; reactions: { user_id: string; kind: string }[]; comments: number }
 export async function fetchPosts(authorId?: string): Promise<Post[]> {
-  let q = supabase.from('posts').select('id,caption,audience,created_at,author:profiles!posts_author_id_fkey(id,username,full_name,avatar_url,level),post_media(path,position),post_reactions(user_id),comments(count)').order('created_at', { ascending: false }).limit(30)
+  let q = supabase.from('posts').select('id,caption,audience,created_at,author:profiles!posts_author_id_fkey(id,username,full_name,avatar_url,level),post_media(path,position),post_reactions(user_id,kind),comments(count)').order('created_at', { ascending: false }).limit(30)
   if (authorId) q = q.eq('author_id', authorId)
   const { data, error } = await q
   if (error) throw error
@@ -13,7 +13,7 @@ export async function fetchPosts(authorId?: string): Promise<Post[]> {
   if (paths.length) { const { data: s } = await supabase.storage.from('posts').createSignedUrls(paths, 3600); s?.forEach(x => { if (x.path && x.signedUrl) urls[x.path] = x.signedUrl }) }
   return rows.map(r => ({ id: r.id, caption: r.caption, audience: r.audience, created_at: r.created_at, author: r.author,
     media: [...r.post_media].sort((a: any, b: any) => a.position - b.position).map((m: any) => ({ path: m.path, url: urls[m.path] })),
-    likes: r.post_reactions.map((x: any) => x.user_id), comments: r.comments?.[0]?.count ?? 0 }))
+    reactions: r.post_reactions, comments: r.comments?.[0]?.count ?? 0 }))
 }
 export async function createPost(uid: string, caption: string, audience: string, files: File[]) {
   const { data: post, error } = await supabase.from('posts').insert({ author_id: uid, caption, audience }).select('id').single()
@@ -35,3 +35,4 @@ export async function createPost(uid: string, caption: string, audience: string,
     throw e
   }
 }
+export const EMOJI: Record<string, string> = { like: '👍', love: '❤️', care: '🥰', haha: '😆', wow: '😮', sad: '😢', angry: '😡' }
