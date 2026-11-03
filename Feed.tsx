@@ -9,7 +9,7 @@ const Av = ({ a }: { a: { avatar_url: string | null; full_name: string; username
 type C = { id: string; parent_id: string | null; body: string; created_at: string; author: { username: string; full_name: string; avatar_url: string | null } }
 function Comments({ postId, onCount }: { postId: string; onCount: (n: number) => void }) {
   const { session } = useAuth(); const [list, setList] = useState<C[]>([]); const [body, setBody] = useState(''); const [reply, setReply] = useState<C | null>(null); const [err, setErr] = useState('')
-  const load = async () => { const { data } = await supabase.from('comments').select('id,parent_id,body,created_at,author:profiles(username,full_name,avatar_url)').eq('post_id', postId).order('created_at'); setList((data ?? []) as any); onCount((data ?? []).length) }
+  const load = async () => { const { data } = await supabase.from('comments').select('id,parent_id,body,created_at,author:profiles!comments_author_id_fkey(username,full_name,avatar_url)').eq('post_id', postId).order('created_at'); setList((data ?? []) as any); onCount((data ?? []).length) }
   useEffect(() => { load() }, [])
   const send = async (e: FormEvent) => {
     e.preventDefault(); const t = body.trim(); if (!t) return; setErr('')

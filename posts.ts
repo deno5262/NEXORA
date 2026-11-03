@@ -3,7 +3,7 @@ import { compress } from './image'
 export type Author = { id: string; username: string; full_name: string; avatar_url: string | null; level: string }
 export type Post = { id: string; caption: string; audience: string; created_at: string; author: Author; media: { path: string; url?: string }[]; likes: string[]; comments: number }
 export async function fetchPosts(authorId?: string): Promise<Post[]> {
-  let q = supabase.from('posts').select('id,caption,audience,created_at,author:profiles(id,username,full_name,avatar_url,level),post_media(path,position),post_reactions(user_id),comments(count)').order('created_at', { ascending: false }).limit(30)
+  let q = supabase.from('posts').select('id,caption,audience,created_at,author:profiles!posts_author_id_fkey(id,username,full_name,avatar_url,level),post_media(path,position),post_reactions(user_id),comments(count)').order('created_at', { ascending: false }).limit(30)
   if (authorId) q = q.eq('author_id', authorId)
   const { data, error } = await q
   if (error) throw error
