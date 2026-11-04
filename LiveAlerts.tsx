@@ -31,7 +31,7 @@ export default function LiveAlerts() {
   }, [uid])
   if (!t) return null
   const go = () => { setT(null); nav(t.followerId ? `/u/${t.who.username}` : `/post/${t.postId}${t.commentId ? '?c=1' : ''}`) }
-  const act = (fn: () => Promise<unknown>) => async (e: { stopPropagation: () => void }) => { e.stopPropagation(); await fn(); setT(null) }
+  const act = (fn: () => PromiseLike<unknown>) => async (e: { stopPropagation: () => void }) => { e.stopPropagation(); await fn(); setT(null) }
   const btn = 'rounded-full border border-line px-3 py-1 text-xs font-semibold'
   return (<div onClick={go} className="pop-in fixed inset-x-3 z-[70] mx-auto flex max-w-xl cursor-pointer items-center gap-3 rounded-2xl border border-accent bg-surface p-3 text-ink shadow-xl" style={{ top: 'max(0.75rem, env(safe-area-inset-top))' }}>
     <Av a={{ ...t.who }} /><div className="min-w-0 flex-1"><p className="truncate text-sm"><b>{t.who.full_name || t.who.username}</b> {t.text}</p>
