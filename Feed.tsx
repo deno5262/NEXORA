@@ -1,8 +1,9 @@
 import { ReactNode, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { MessageCircle, Globe, Users, Lock, X, Heart, ThumbsUp, ChevronDown, Share2, Bookmark, MoreHorizontal, Eye } from 'lucide-react'
 import { supabase } from './supabase'
 import { useAuth } from './AuthContext'
-import { fetchPosts, fetchSavedIds, Post, EMOJI, PICKER } from './posts'
+import { fetchPosts, fetchSavedIds, fetchFollowingIds, Post, EMOJI, PICKER } from './posts'
 import { Av, ago, playPop, short } from './ui'
 import RichText from './RichText'
 import CommentSheet from './Comments'
@@ -23,7 +24,7 @@ function Viewer({ post, start, onClose, bar }: { post: Post; start: number; onCl
     {post.caption && <p className="max-h-24 overflow-y-auto px-3 pt-2 text-sm"><RichText text={post.caption} /></p>}
     <div className="bg-surface text-ink">{bar}</div></div>)
 }
-export function PostCard({ post, saved, onSaved, onDeleted, autoOpen }: { post: Post; saved: boolean; onSaved: (v: boolean) => void; onDeleted: () => void; autoOpen?: boolean }) {
+export function PostCard({ post, saved, onSaved, onDeleted, autoOpen, following, onFollow }: { post: Post; saved: boolean; onSaved: (v: boolean) => void; onDeleted: () => void; autoOpen?: boolean; following?: boolean; onFollow?: () => void }) {
   const { session } = useAuth(); const uid = session!.user.id
   const [p, setP] = useState(post); const [reactions, setReactions] = useState(post.reactions); const [picker, setPicker] = useState(false); const [sheet, setSheet] = useState(!!autoOpen)
   const [viewer, setViewer] = useState<number | null>(null); const [n, setN] = useState(post.comments); const [idx, setIdx] = useState(0); const [menu, setMenu] = useState(false); const [share, setShare] = useState(false); const [burst, setBurst] = useState(0)
@@ -54,6 +55,8 @@ export function PostCard({ post, saved, onSaved, onDeleted, autoOpen }: { post: 
   const up = () => { window.clearTimeout(timer.current); if (!long.current) setReaction(mine ? null : quick) }
   const cancel = () => window.clearTimeout(timer.current)
   const dbl = () => { setBurst(Date.now()); if (!mine) setReaction(quick) }
+  const follow = async () => { const r = await supabase.from('follows').insert({ follower_id: uid, following_id: p.author.id }); if (!r.error) onFollow?.() }
+  const followBadge = !following && p.author.id !== uid ? <button type="button" aria-label="Follow" onClick={e => { e.preventDefault(); follow() }} className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-accent text-xs font-bold leading-none text-on">+</button> : null
   const icon = mine ? <span className="text-xl">{EMOJI[mine]}</span> : quick === 'love' ? <Heart size={18} /> : <ThumbsUp size={18} />
   const pill = 'flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line py-2.5 font-medium'
   const bar = (<div>
@@ -70,7 +73,7 @@ export function PostCard({ post, saved, onSaved, onDeleted, autoOpen }: { post: 
       <button onClick={() => setSheet(true)} className={pill}><MessageCircle size={18} />Comment</button>
       <button onClick={() => setShare(true)} className={pill}><Share2 size={18} />Share</button></div></div>)
   return (<article ref={root} className="overflow-hidden rounded-2xl border border-line bg-surface">
-    <header className="flex items-center gap-2 p-3"><Av a={p.author} /><div className="min-w-0 flex-1"><b className="block truncate">{p.author.full_name || p.author.username}</b>
+    <header className="flex items-center gap-2 p-3"><Link to={`/u/${p.author.username}`} className="relative shrink-0"><Av a={p.author} />{followBadge}</Link><div className="min-w-0 flex-1"><Link to={`/u/${p.author.username}`} className="block truncate font-bold">{p.author.full_name || p.author.username}</Link>
       <span className="flex items-center gap-1 text-xs text-mute">@{p.author.username} · {ago(p.created_at)} · <AIcon size={12} /></span></div>
       <button aria-label="Menu" onClick={() => setMenu(true)} className="p-1.5 text-mute"><MoreHorizontal size={20} /></button>
       <button aria-label={saved ? 'Unsave' : 'Save'} onClick={toggleSave} className={`p-1.5 ${saved ? 'text-accent' : 'text-mute'}`}><Bookmark size={20} fill={saved ? 'currentColor' : 'none'} /></button></header>
@@ -88,8 +91,9 @@ export function PostCard({ post, saved, onSaved, onDeleted, autoOpen }: { post: 
     {menu && <PostMenu post={{ ...p, reactions, comments: n }} mine={p.author.id === uid} saved={saved} onSave={toggleSave} onClose={() => setMenu(false)} onEdited={x => setP({ ...p, ...x })} onDeleted={onDeleted} />}
     {share && <ShareSheet post={p} onClose={() => setShare(false)} />}</article>)
 }
-function rank(ps: Post[], tab: string, plain: boolean): Post[] {
+function rank(ps: Post[], tab: string, plain: boolean, fol: Set<string>): Post[] {
   if (plain) return ps
+  if (tab === 'following') return ps.filter(p => fol.has(p.author.id))
   const now = Date.now(); const per: Record<string, number> = {}; ps.forEach(p => { per[p.author.id] = (per[p.author.id] ?? 0) + 1 })
   const age = (p: Post) => (now - new Date(p.created_at).getTime()) / 3.6e6
   const eng = (p: Post) => p.reactions.length + p.comments * 3 + p.views * 0.2
@@ -100,14 +104,14 @@ function rank(ps: Post[], tab: string, plain: boolean): Post[] {
   return out
 }
 export default function Feed({ authorId, ids, tab = 'foryou' }: { authorId?: string; ids?: string[]; tab?: string }) {
-  const [posts, setPosts] = useState<Post[] | null>(null); const [saved, setSaved] = useState<Set<string>>(new Set()); const [err, setErr] = useState('')
+  const [posts, setPosts] = useState<Post[] | null>(null); const [saved, setSaved] = useState<Set<string>>(new Set()); const [err, setErr] = useState(''); const { session } = useAuth(); const uid = session!.user.id; const [fol, setFol] = useState<Set<string>>(new Set())
   useEffect(() => {
     setPosts(null); setErr('')
-    Promise.all([fetchPosts({ authorId, ids }), fetchSavedIds()]).then(([ps, s]) => { setPosts(rank(ps, tab, !!authorId || !!ids)); setSaved(s) }).catch(e => setErr(e.message))
+    Promise.all([fetchPosts({ authorId, ids }), fetchSavedIds(), fetchFollowingIds(uid)]).then(([ps, s, f2]) => { setFol(f2); setPosts(rank(ps, tab, !!authorId || !!ids, f2)); setSaved(s) }).catch(e => setErr(e.message))
   }, [authorId, ids?.join(','), tab])
   if (err) return <p role="alert" className="text-red-400">{err}</p>
   if (!posts) return <p className="py-10 text-center text-mute">Loading…</p>
-  if (!posts.length) return <p className="py-10 text-center text-mute">{tab === 'trending' && !authorId && !ids ? 'Nothing is trending yet.' : 'No photo posts yet. Tap + to create one.'}</p>
+  if (!posts.length) return <p className="py-10 text-center text-mute">{authorId || ids ? 'No photo posts yet.' : tab === 'trending' ? 'Nothing is trending yet.' : tab === 'following' ? 'Follow people to see their posts here.' : 'No photo posts yet. Tap + to create one.'}</p>
   return <div className="flex flex-col gap-5 text-ink">{posts.map(p => <PostCard key={p.id} post={p} saved={saved.has(p.id)}
-    onSaved={v => setSaved(prev => { const s = new Set(prev); if (v) s.add(p.id); else s.delete(p.id); return s })} onDeleted={() => setPosts(posts.filter(x => x.id !== p.id))} />)}</div>
+    onSaved={v => setSaved(prev => { const s = new Set(prev); if (v) s.add(p.id); else s.delete(p.id); return s })} onDeleted={() => setPosts(posts.filter(x => x.id !== p.id))} following={fol.has(p.author.id)} onFollow={() => setFol(prev => new Set(prev).add(p.author.id))} />)}</div>
 }

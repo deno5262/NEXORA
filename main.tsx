@@ -27,7 +27,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path="textora" element={<Soon title="TEXTORA" phase={3} note="Messaging module." />} />
       <Route path="create/post" element={<CreatePost />} />
       <Route path="create/story" element={<Soon title="Create Story" phase={2} />} />
-      <Route path="profile" element={<Profile />} />
+      <Route path="profile" element={<Profile />} /><Route path="u/:username" element={<Profile />} />
       <Route path="settings/:section?" element={<Settings />} /><Route path="edit-profile" element={<EditProfile />} />
     </Route></Route>
   </Routes></AuthProvider></BrowserRouter></React.StrictMode>)

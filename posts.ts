@@ -43,3 +43,7 @@ export async function createPost(uid: string, caption: string, audience: string,
 }
 export const EMOJI: Record<string, string> = { like: '👍', love: '❤️', fire: '🔥', haha: '😂', wow: '😮', clap: '👏', perfect: '💯', care: '🥰', sad: '😢', angry: '😡' }
 export const PICKER = ['like', 'love', 'fire', 'haha', 'wow', 'clap', 'perfect']
+export async function fetchFollowingIds(uid: string): Promise<Set<string>> {
+  const { data } = await supabase.from('follows').select('following_id').eq('follower_id', uid)
+  return new Set<string>((data ?? []).map((r: any) => r.following_id as string))
+}

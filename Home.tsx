@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Flame, TrendingUp } from 'lucide-react'
+import { Plus, Search, Flame, TrendingUp, Users } from 'lucide-react'
 import Feed from './Feed'
 import { useAuth } from './AuthContext'
 export default function Home() {
   const { profile } = useAuth(); const [tab, setTab] = useState('foryou')
-  const tabs: [string, string, typeof Flame][] = [['foryou', 'For You', Flame], ['trending', 'Trending', TrendingUp]]
+  const tabs: [string, string, typeof Flame][] = [['foryou', 'For You', Flame], ['following', 'Following', Users], ['trending', 'Trending', TrendingUp]]
   return (<div className="flex flex-col gap-5">
     <Link to="/search" className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5 text-mute"><Search size={18} />Search people, posts, hashtags</Link>
     <div className="flex gap-2">{tabs.map(([k, l, I]) => <button key={k} onClick={() => setTab(k)} className="flex items-center gap-2 rounded-full border px-4 py-2 font-semibold"

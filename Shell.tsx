@@ -1,27 +1,36 @@
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { Home, CircleDot, Plus, Bell, Search, MessageCircle, ChevronLeft, Settings as Cog, X, Image, Clapperboard, UserCog } from 'lucide-react'
-import { useState } from 'react'
+import { Home, CircleDot, Plus, Bell, Search, MessageCircleMore, ChevronLeft, Settings as Cog, X, Image, Clapperboard, UserCog } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useAuth } from './AuthContext'
 import ThemeMenu from './ThemeMenu'
 import Logo from './Logo'
+import LiveAlerts from './LiveAlerts'
+import { countActivity } from './activityApi'
 export default function Shell() {
-  const { profile } = useAuth(); const { pathname } = useLocation(); const top = ['/', '/stories', '/activity'].includes(pathname); const nav = useNavigate(); const [open, setOpen] = useState(false)
-  const item = (to: string, Icon: typeof Home, label: string) => (
-    <NavLink to={to} end className={({ isActive }) => `flex flex-col items-center gap-0.5 text-xs ${isActive ? 'text-accent' : 'text-mute'}`}><Icon size={22} />{label}</NavLink>)
+  const { profile, session } = useAuth(); const [unread, setUnread] = useState(0); const { pathname } = useLocation(); const top = ['/', '/stories', '/activity'].includes(pathname); const nav = useNavigate(); const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const uid = session?.user.id; if (!uid) return
+    const run = () => { countActivity(uid).then(setUnread).catch(() => {}) }
+    run(); const id = setInterval(run, 60000)
+    window.addEventListener('activity-new', run); window.addEventListener('activity-seen', run); window.addEventListener('focus', run)
+    return () => { clearInterval(id); window.removeEventListener('activity-new', run); window.removeEventListener('activity-seen', run); window.removeEventListener('focus', run) }
+  }, [session?.user.id])
+  const item = (to: string, Icon: typeof Home, label: string, badge = 0) => (
+    <NavLink to={to} end className={({ isActive }) => `relative flex flex-col items-center gap-0.5 text-xs ${isActive ? 'text-accent' : 'text-mute'}`}><Icon size={22} />{label}{badge > 0 && <span className="absolute -top-1 left-1/2 ml-1 min-w-[18px] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-[18px] text-white">{badge > 99 ? '99+' : badge}</span>}</NavLink>)
   const go = (to: string) => { setOpen(false); nav(to) }
   return (<div className="mx-auto flex min-h-full max-w-xl flex-col">
     <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur">
       {!top && <button aria-label="Back" onClick={() => nav(-1)} className="-ml-1 p-1"><ChevronLeft size={26} /></button>}<Link to="/" className="mr-auto text-xl font-extrabold tracking-widest text-accent"><Logo /></Link>
       <Link to="/search" aria-label="Search" className="p-2"><Search size={22} /></Link>
-      <ThemeMenu /><Link to="/textora" aria-label="TEXTORA" className="p-2"><MessageCircle size={22} /></Link>
+      <ThemeMenu /><Link to="/textora" aria-label="TEXTORA" className="p-2"><MessageCircleMore size={22} /></Link>
       {pathname === '/profile' ? <Link to="/settings" aria-label="Settings" className="p-2"><Cog size={22} /></Link> : <Link to="/profile" aria-label="Profile" className="h-8 w-8 overflow-hidden rounded-full border border-accent bg-surface">
         {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-sm font-bold">{(profile?.full_name || profile?.username || '?')[0]?.toUpperCase()}</span>}</Link>}
     </header>
-    <main className="flex-1 px-4 pb-28 pt-4"><Outlet /></main>
+    <LiveAlerts /><main className="flex-1 px-4 pb-28 pt-4"><Outlet /></main>
     <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-xl grid-cols-4 items-center border-t border-line bg-bg/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
       {item('/', Home, 'Home')}{item('/stories', CircleDot, 'Stories')}
       <button aria-label="Create" onClick={() => setOpen(true)} className="mx-auto -mt-6 grid h-14 w-14 place-items-center rounded-full bg-accent text-on shadow-lg"><Plus size={28} /></button>
-      {item('/activity', Bell, 'Activity')}
+      {item('/activity', Bell, 'Activity', unread)}
     </nav>
     {open && <div className="fixed inset-0 z-30 flex items-end bg-black/60" onClick={() => setOpen(false)}>
       <div className="mx-auto w-full max-w-xl rounded-t-2xl border-t border-line bg-surface p-4" onClick={e => e.stopPropagation()}>

@@ -1,6 +1,6 @@
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as Img, Bookmark } from 'lucide-react'
+import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as Img, Bookmark, Eye } from 'lucide-react'
 import { supabase, THEMES, THEME_COLORS } from './supabase'
 import { useAuth } from './AuthContext'
 import { soundOn } from './ui'
@@ -30,10 +30,12 @@ function Security() {
     <input className="input" type="password" placeholder="New password" value={pw} onChange={e => setPw(e.target.value)} /><button className="btn">Change password</button><Msg t={msg} /></form>)
 }
 function Theme() {
-  const { theme, setTheme } = useAuth()
+  const { theme, setTheme } = useAuth(); const [stats, setStats] = useState<Record<string, number>>({})
+  useEffect(() => { supabase.rpc('theme_stats').then(({ data }) => { const m: Record<string, number> = {}; ((data ?? []) as any[]).forEach(r => { m[r.theme] = Number(r.users) }); setStats(m) }) }, [])
+  const top = (Object.entries(stats) as [string, number][]).sort((a, b) => b[1] - a[1])[0]?.[0]
   return (<section><h2 className="mb-2 font-bold">Theme</h2><div className="grid grid-cols-1 gap-2">
     {THEMES.map(([k, name]) => <button key={k} onClick={() => setTheme(k)} className={`flex items-center justify-between rounded-xl border p-3 text-left ${theme === k ? 'border-accent text-accent' : 'border-line'}`}>
-      <span>{name}</span><span className="flex gap-1">{THEME_COLORS[k].map((c, i) => <i key={i} className="h-5 w-5 rounded-full border border-line" style={{ background: c }} />)}</span></button>)}</div></section>)
+      <span>{name}{top === k && <small className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-on">🔥 Most popular</small>}{stats[k] ? <small className="ml-2 text-mute">{stats[k]} users</small> : null}</span><span className="flex gap-1">{THEME_COLORS[k].map((c, i) => <i key={i} className="h-5 w-5 rounded-full border border-line" style={{ background: c }} />)}</span></button>)}</div></section>)
 }
 function Reactions() {
   const { profile, refresh } = useAuth(); const [sound, setSound] = useState(soundOn())
@@ -52,6 +54,14 @@ function Photos() {
     {opts.map(([k, t, d]) => <button key={k} onClick={() => { localStorage.setItem('photoMode', k); setM(k) }} className={`rounded-xl border p-3 text-left ${m === k ? 'border-accent' : 'border-line'}`}><b className={m === k ? 'text-accent' : ''}>{t}</b><p className="text-sm text-mute">{d}</p></button>)}
     <p className="text-sm text-mute">Small photos are never enlarged.</p></div>)
 }
+function Privacy() {
+  const { profile, refresh } = useAuth()
+  const set = async (k: 'show_liked' | 'show_favorites', v: boolean) => { await supabase.from('profiles').update({ [k]: v }).eq('id', profile!.id); refresh() }
+  return (<div className="flex flex-col gap-3"><h2 className="font-bold">Privacy</h2>
+    <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span>Show my Liked posts on my profile<small className="block text-mute">Off means only you can see them.</small></span><input type="checkbox" checked={!!profile?.show_liked} onChange={e => set('show_liked', e.target.checked)} /></label>
+    <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span>Show my Favorites (saved posts)<small className="block text-mute">Off means only you can see them.</small></span><input type="checkbox" checked={!!profile?.show_favorites} onChange={e => set('show_favorites', e.target.checked)} /></label>
+    <p className="text-sm text-mute">Note: a reaction you give is still visible on that post to people who can see the post.</p></div>)
+}
 export default function Settings() {
   const { section } = useParams()
   if (section === 'account') return <Account />
@@ -59,7 +69,8 @@ export default function Settings() {
   if (section === 'appearance') return <Theme />
   if (section === 'reactions') return <Reactions />
   if (section === 'photos') return <Photos />
-  const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds'], ['photos', Img, 'Photo display']]
+  if (section === 'privacy') return <Privacy />
+  const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds'], ['photos', Img, 'Photo display'], ['privacy', Eye, 'Privacy']]
   return (<div className="flex flex-col gap-3"><h1 className="text-xl font-bold">Settings</h1>
     {rows.map(([id, I, label]) => <Link key={id} to={`/settings/${id}`} className="flex items-center gap-3 rounded-xl border border-line p-3"><I className="text-accent" /><span className="flex-1">{label}</span><ChevronRight className="text-mute" /></Link>)}
     <Link to="/saved" className="flex items-center gap-3 rounded-xl border border-line p-3"><Bookmark className="text-accent" /><span className="flex-1">Saved posts</span><ChevronRight className="text-mute" /></Link>
