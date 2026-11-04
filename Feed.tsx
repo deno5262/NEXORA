@@ -103,12 +103,12 @@ function rank(ps: Post[], tab: string, plain: boolean, fol: Set<string>): Post[]
   while (sorted.length) { const i = Math.max(0, sorted.findIndex(p => p.author.id !== out[out.length - 1]?.author.id)); out.push(sorted.splice(i, 1)[0]) }
   return out
 }
-export default function Feed({ authorId, ids, tab = 'foryou' }: { authorId?: string; ids?: string[]; tab?: string }) {
+export default function Feed({ authorId, ids, tab = 'foryou', mode }: { authorId?: string; ids?: string[]; tab?: string; mode?: 'public' | 'private' }) {
   const [posts, setPosts] = useState<Post[] | null>(null); const [saved, setSaved] = useState<Set<string>>(new Set()); const [err, setErr] = useState(''); const { session } = useAuth(); const uid = session!.user.id; const [fol, setFol] = useState<Set<string>>(new Set())
   useEffect(() => {
     setPosts(null); setErr('')
-    Promise.all([fetchPosts({ authorId, ids }), fetchSavedIds(), fetchFollowingIds(uid)]).then(([ps, s, f2]) => { setFol(f2); setPosts(rank(ps, tab, !!authorId || !!ids, f2)); setSaved(s) }).catch(e => setErr(e.message))
-  }, [authorId, ids?.join(','), tab])
+    Promise.all([fetchPosts({ authorId, ids }), fetchSavedIds(), fetchFollowingIds(uid)]).then(([ps0, s, f2]) => { const ps = mode === 'private' ? ps0.filter(p => p.audience === 'only_me') : mode === 'public' ? ps0.filter(p => p.audience !== 'only_me') : ps0; setFol(f2); setPosts(rank(ps, tab, !!authorId || !!ids, f2)); setSaved(s) }).catch(e => setErr(e.message))
+  }, [authorId, ids?.join(','), tab, mode])
   if (err) return <p role="alert" className="text-red-400">{err}</p>
   if (!posts) return <p className="py-10 text-center text-mute">Loading…</p>
   if (!posts.length) return <p className="py-10 text-center text-mute">{authorId || ids ? 'No photo posts yet.' : tab === 'trending' ? 'Nothing is trending yet.' : tab === 'following' ? 'Follow people to see their posts here.' : 'No photo posts yet. Tap + to create one.'}</p>
