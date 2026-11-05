@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as Img, Bookmark, Eye } from 'lucide-react'
+import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as Img, Bookmark, Eye, Users } from 'lucide-react'
 import { supabase, THEMES, THEME_COLORS } from './supabase'
 import { useAuth } from './AuthContext'
 import { soundOn } from './ui'
@@ -73,6 +73,7 @@ export default function Settings() {
   const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds'], ['photos', Img, 'Photo display'], ['privacy', Eye, 'Privacy']]
   return (<div className="flex flex-col gap-3"><h1 className="text-xl font-bold">Settings</h1>
     {rows.map(([id, I, label]) => <Link key={id} to={`/settings/${id}`} className="flex items-center gap-3 rounded-xl border border-line p-3"><I className="text-accent" /><span className="flex-1">{label}</span><ChevronRight className="text-mute" /></Link>)}
+    <Link to="/friends" className="flex items-center gap-3 rounded-xl border border-line p-3"><Users className="text-accent" /><span className="flex-1">Friends & requests</span><ChevronRight className="text-mute" /></Link>
     <Link to="/saved" className="flex items-center gap-3 rounded-xl border border-line p-3"><Bookmark className="text-accent" /><span className="flex-1">Saved posts</span><ChevronRight className="text-mute" /></Link>
     <button onClick={() => supabase.auth.signOut()} className="flex items-center gap-3 rounded-xl border border-line p-3 text-red-400"><LogOut />Log out</button>
     <p className="text-sm text-mute">Not built yet: privacy, notifications, blocked users, data & storage, account deactivation and deletion.</p></div>)

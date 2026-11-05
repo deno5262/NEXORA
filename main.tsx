@@ -12,6 +12,8 @@ import Soon from './Soon'
 import Activity from './Activity'
 import PostPage from './PostPage'
 import Saved from './Saved'
+import Search from './Search'
+import Friends from './Friends'
 import CreatePost from './CreatePost'
 import Settings from './Settings'
 import EditProfile from './EditProfile'
@@ -23,7 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route index element={<Home />} />
       <Route path="stories" element={<Soon title="Stories" phase={2} />} />
       <Route path="notifications" element={<Navigate to="/activity" replace />} /><Route path="activity" element={<Activity />} /><Route path="post/:id" element={<PostPage />} /><Route path="saved" element={<Saved />} />
-      <Route path="search" element={<Soon title="Search" phase={2} />} />
+      <Route path="search" element={<Search />} /><Route path="friends" element={<Friends />} />
       <Route path="textora" element={<Soon title="TEXTORA" phase={3} note="Messaging module." />} />
       <Route path="create/post" element={<CreatePost />} />
       <Route path="create/story" element={<Soon title="Create Story" phase={2} />} />

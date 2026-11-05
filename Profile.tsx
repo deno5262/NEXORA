@@ -10,6 +10,7 @@ import LevelBadge, { levelColor } from './LevelBadge'
 import Feed from './Feed'
 import { fetchPosts, Post } from './posts'
 import { short } from './ui'
+import RelationButtons from './Relation'
 import { SOC, safeUrl } from './socials'
 const LEVELS: [string, number][] = [['Bronze', 0], ['Silver', 100], ['Gold', 300], ['Platinum', 700], ['Diamond', 1500], ['Elite', 3000]]
 const TABS: [string, typeof LayoutGrid][] = [['Posts', LayoutGrid], ['Photos', ImageIcon], ['Stories', Play], ['Private', Lock], ['Favorites', Star], ['Reposts', Repeat2], ['Liked', Heart]]
@@ -117,8 +118,7 @@ export default function Profile() {
         {rows.length ? <ul className="flex flex-col gap-2">{rows.map(([I, k, v, href]) => <li key={k} className="flex items-center gap-3"><I size={18} className="shrink-0 text-accent" /><span className="text-mute">{k}:</span>{href ? <a href={href} target="_blank" rel="noreferrer" className="min-w-0 break-words underline decoration-accent">{v}</a> : <span className="min-w-0 break-words">{v}</span>}</li>)}</ul> : <p className="text-mute">No details added yet.</p>}
         {profile.lat != null && profile.lng != null && <iframe title="Map" className="h-44 w-full rounded-xl border border-line" src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(profile.lng) - 0.03},${Number(profile.lat) - 0.03},${Number(profile.lng) + 0.03},${Number(profile.lat) + 0.03}&layer=mapnik&marker=${profile.lat},${profile.lng}`} />}</div>}
       <div className="my-3">{own ? <div className="flex gap-2"><Link to="/create/story" className="btn flex-1 text-center">Add to story</Link><Link to="/edit-profile" className="flex-1 rounded-xl border border-line px-4 py-2.5 text-center">Edit profile</Link></div>
-        : <button onClick={toggleFollow} className={iFollow ? 'flex w-full items-center justify-center gap-2 rounded-xl border border-line px-4 py-2.5 font-semibold' : 'btn flex w-full items-center justify-center gap-2'}>
-          {iFollow ? <><UserCheck size={18} />Following</> : <><UserPlus size={18} />{followsMe ? 'Follow back' : 'Follow'}</>}</button>}</div>
+        : <RelationButtons target={profile.id} onChange={loadCounts} />}</div>
       <div className="flex overflow-x-auto rounded-2xl border border-line bg-surface">{tabs.map(([k, I]) => <button key={k} onClick={() => setTab(k)} className={`flex w-1/3 shrink-0 flex-col items-center gap-0.5 py-2 text-sm ${tab === k ? 'text-accent' : 'text-mute'}`} style={tab === k ? { borderBottom: '2px solid var(--accent)' } : undefined}>
         <I size={20} />{k}{tabCount[k] !== undefined && <small className="text-xs">{short(tabCount[k])}</small>}</button>)}</div>
       <div className="py-3">

@@ -2,10 +2,11 @@ import { supabase } from './supabase'
 import { compress } from './image'
 export type Author = { id: string; username: string; full_name: string; avatar_url: string | null; level: string; quick_reaction?: string }
 export type Post = { id: string; caption: string; audience: string; created_at: string; author: Author; media: { path: string; url?: string }[]; reactions: { user_id: string; kind: string }[]; comments: number; fit: string; views: number }
-export async function fetchPosts(o: { authorId?: string; postId?: string; ids?: string[]; limit?: number } = {}): Promise<Post[]> {
+export async function fetchPosts(o: { authorId?: string; postId?: string; ids?: string[]; limit?: number; search?: string } = {}): Promise<Post[]> {
   let q = supabase.from('posts').select('id,caption,audience,fit,view_count,created_at,author:profiles!posts_author_id_fkey(id,username,full_name,avatar_url,level,quick_reaction),post_media(path,position),post_reactions(user_id,kind),comments(count)').order('created_at', { ascending: false }).limit(o.limit ?? 60)
   if (o.authorId) q = q.eq('author_id', o.authorId)
   if (o.postId) q = q.eq('id', o.postId)
+  if (o.search) q = q.ilike('caption', `%${o.search}%`)
   if (o.ids) q = q.in('id', o.ids.length ? o.ids : ['00000000-0000-0000-0000-000000000000'])
   const { data, error } = await q
   if (error) throw error
@@ -46,4 +47,8 @@ export const PICKER = ['like', 'love', 'fire', 'haha', 'wow', 'clap', 'perfect']
 export async function fetchFollowingIds(uid: string): Promise<Set<string>> {
   const { data } = await supabase.from('follows').select('following_id').eq('follower_id', uid)
   return new Set<string>((data ?? []).map((r: any) => r.following_id as string))
+}
+export async function fetchFriendIds(uid: string): Promise<Set<string>> {
+  const { data } = await supabase.from('friendships').select('user_a,user_b')
+  return new Set<string>((data ?? []).map((r: any) => (r.user_a === uid ? r.user_b : r.user_a) as string))
 }

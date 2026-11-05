@@ -10,6 +10,8 @@ export async function countActivity(uid: string): Promise<number> {
     c(supabase.from('comments').select('id,post:posts!inner(author_id)', { count: 'exact', head: true }).eq('post.author_id', uid).neq('author_id', uid).gt('created_at', since)),
     mids.length ? c(supabase.from('comments').select('id,post:posts!inner(author_id)', { count: 'exact', head: true }).in('parent_id', mids).neq('author_id', uid).neq('post.author_id', uid).gt('created_at', since)) : Promise.resolve(0),
     c(supabase.from('comment_reactions').select('comment_id,comment:comments!inner(author_id)', { count: 'exact', head: true }).eq('comment.author_id', uid).neq('user_id', uid).gt('created_at', since)),
-    c(supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', uid).gt('created_at', since))])
+    c(supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', uid).gt('created_at', since)),
+    c(supabase.from('friend_requests').select('id', { count: 'exact', head: true }).eq('receiver_id', uid).eq('status', 'pending').gt('created_at', since)),
+    c(supabase.from('friend_requests').select('id', { count: 'exact', head: true }).eq('sender_id', uid).eq('status', 'accepted').gt('responded_at', since))])
   return parts.reduce((a, b) => a + b, 0)
 }
