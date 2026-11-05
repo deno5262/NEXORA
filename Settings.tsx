@@ -57,9 +57,12 @@ function Photos() {
 function Privacy() {
   const { profile, refresh } = useAuth()
   const set = async (k: 'show_liked' | 'show_favorites', v: boolean) => { await supabase.from('profiles').update({ [k]: v }).eq('id', profile!.id); refresh() }
+  const setVis = async (k: string, v: string) => { await supabase.from('profiles').update({ [k]: v }).eq('id', profile!.id); refresh() }
+  const vis = (k: string, label: string) => <label key={k} className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span>{label}</span><select className="rounded-lg border border-line bg-bg px-2 py-1" value={((profile as any)?.[k] as string) ?? 'everyone'} onChange={e => setVis(k, e.target.value)}><option value="everyone">Everyone</option><option value="friends">Friends</option><option value="only_me">Only me</option></select></label>
   return (<div className="flex flex-col gap-3"><h2 className="font-bold">Privacy</h2>
     <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span>Show my Liked posts on my profile<small className="block text-mute">Off means only you can see them.</small></span><input type="checkbox" checked={!!profile?.show_liked} onChange={e => set('show_liked', e.target.checked)} /></label>
     <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span>Show my Favorites (saved posts)<small className="block text-mute">Off means only you can see them.</small></span><input type="checkbox" checked={!!profile?.show_favorites} onChange={e => set('show_favorites', e.target.checked)} /></label>
+    <h3 className="mt-2 font-semibold">Who can see my lists</h3>{vis('following_visibility', 'People I follow')}{vis('followers_visibility', 'My followers')}{vis('friends_visibility', 'My friends')}
     <p className="text-sm text-mute">Note: a reaction you give is still visible on that post to people who can see the post.</p></div>)
 }
 export default function Settings() {

@@ -11,6 +11,7 @@ import Feed from './Feed'
 import { fetchPosts, Post } from './posts'
 import { short } from './ui'
 import RelationButtons from './Relation'
+import { ProfileStories } from './Stories'
 import { SOC, safeUrl } from './socials'
 const LEVELS: [string, number][] = [['Bronze', 0], ['Silver', 100], ['Gold', 300], ['Platinum', 700], ['Diamond', 1500], ['Elite', 3000]]
 const TABS: [string, typeof LayoutGrid][] = [['Posts', LayoutGrid], ['Photos', ImageIcon], ['Stories', Play], ['Private', Lock], ['Favorites', Star], ['Reposts', Repeat2], ['Liked', Heart]]
@@ -47,16 +48,13 @@ export default function Profile() {
   const count = (q: any) => q.then((r: any) => (r.count as number) ?? 0)
   const loadCounts = async () => {
     if (!pid) return
-    const [po, ph, fo, fi, li, vw, fr]: number[] = await Promise.all([
+    const [po, ph, li, vw, pc]: any[] = await Promise.all([
       count(supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', pid).neq('audience', 'only_me')),
       count(supabase.from('post_media').select('id,post:posts!inner(author_id,audience)', { count: 'exact', head: true }).eq('post.author_id', pid).neq('post.audience', 'only_me')),
-      count(supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', pid)),
-      count(supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('follower_id', pid)),
       count(supabase.from('post_reactions').select('post_id,post:posts!inner(author_id)', { count: 'exact', head: true }).eq('post.author_id', pid)),
       supabase.from('posts').select('view_count').eq('author_id', pid).limit(1000).then((r: any) => ((r.data ?? []) as any[]).reduce((a: number, x: any) => a + (x.view_count ?? 0), 0)),
-      supabase.rpc('friends_count', { uid: pid }).then((r: any) => Number(r.data ?? 0))])
-    setC({ posts: po, photos: ph, followers: fo, following: fi, likes: li, views: vw, friends: fr })
-    if (!own) { const [a, b]: number[] = await Promise.all([count(supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('follower_id', uid).eq('following_id', pid)), count(supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('follower_id', pid).eq('following_id', uid))]); setIFollow(a > 0); setFollowsMe(b > 0) }
+      supabase.rpc('profile_counts', { uid: pid }).then((r: any) => (r.data?.[0] ?? { followers: 0, following: 0, friends: 0 }))])
+    setC({ posts: po, photos: ph, followers: Number(pc.followers), following: Number(pc.following), likes: li, views: vw, friends: Number(pc.friends) })
   }
   useEffect(() => { loadCounts() }, [pid])
   const canSee = tab === 'Favorites' ? own || !!profile?.show_favorites : tab === 'Liked' ? own || !!profile?.show_liked : true
@@ -87,6 +85,7 @@ export default function Profile() {
     [Calendar, 'Joined', profile.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' }) : '']] as [typeof Home, string, string, string?][]).filter(r => r[2])
   const R = 54, C = 2 * Math.PI * R; const name = profile.full_name || profile.username
   const tabs = own ? TABS : TABS.filter(t => t[0] !== 'Private'); const tabCount: Record<string, number> = { Posts: c.posts, Photos: c.photos }
+  const statLink = (n: number, l: string, kind: string) => <Link to={`/u/${profile.username}/list/${kind}`} className="active:opacity-60"><b className="text-ink">{short(n)}</b> <span className="text-mute">{l}</span></Link>
   const stat = (n: number, l: string) => <span><b className="text-ink">{short(n)}</b> <span className="text-mute">{l}</span></span>
   return (<div className="-mx-4 -mt-4">
     <div className="relative h-44 bg-surface">{profile.cover_url && <img src={profile.cover_url} alt="" className="h-full w-full object-cover" />}
@@ -109,9 +108,9 @@ export default function Profile() {
             {socOpen && socials.map(([k, v]) => { const Ic = SOC_ICON[k] ?? Globe; return <a key={k} href={safeUrl(v)} target="_blank" rel="noopener noreferrer" aria-label={k} className="p-1 text-accent"><Ic size={18} /></a> })}</div>}</div></div>
       <input ref={av} type="file" accept="image/*" hidden onChange={pick('avatar')} /><input ref={cv} type="file" accept="image/*" hidden onChange={pick('cover')} />
       {busy && <p className="text-sm text-mute">Uploading…</p>}{err && <p role="alert" className="text-sm text-red-400">{err}</p>}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">{stat(c.following, 'Following')}{stat(c.followers, 'Followers')}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">{statLink(c.following, 'Following', 'following')}{statLink(c.followers, 'Followers', 'followers')}
         <span className="flex items-center gap-1"><Heart size={14} className="text-red-500" fill="currentColor" />{stat(c.likes, 'Likes')}<button aria-label="More stats" onClick={() => setMoreStats(!moreStats)} className="text-mute"><ChevronRight size={16} className={moreStats ? 'rotate-180' : ''} /></button></span>
-        {moreStats && <>{stat(c.friends, 'Friends')}<span className="flex items-center gap-1"><Eye size={14} className="text-mute" />{stat(c.views, 'Views')}</span></>}</div>
+        {moreStats && <>{statLink(c.friends, 'Friends', 'friends')}<span className="flex items-center gap-1"><Eye size={14} className="text-mute" />{stat(c.views, 'Views')}</span></>}</div>
       {profile.bio && <p className="mt-2">{profile.bio}</p>}
       {(profile.living_in || profile.location || profile.tagline) && <p className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-mute">{(profile.living_in || profile.location) && <span className="flex items-center gap-1"><MapPin size={14} />{profile.living_in || profile.location}</span>}{profile.tagline && <span className="italic">{profile.tagline}</span>}</p>}
       {aboutOpen && <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3"><b>About</b>
@@ -123,7 +122,8 @@ export default function Profile() {
         <I size={20} />{k}{tabCount[k] !== undefined && <small className="text-xs">{short(tabCount[k])}</small>}</button>)}</div>
       <div className="py-3">
         {tab === 'Photos' ? <PhotoGrid authorId={profile.id} />
-          : tab === 'Stories' || tab === 'Reposts' ? <p className="py-10 text-center text-mute">{tab} are not built yet. They arrive in an upcoming update.</p>
+          : tab === 'Stories' ? <ProfileStories authorId={profile.id} />
+          : tab === 'Reposts' ? <p className="py-10 text-center text-mute">Reposts are not built yet. They arrive in an upcoming update.</p>
           : (<><div className="mb-3 flex justify-end gap-2">{([['grid', LayoutGrid], ['feed', List]] as [string, typeof List][]).map(([k, I]) => <button key={k} aria-label={k} onClick={() => setView(k)} className="rounded-lg border p-2" style={view === k ? { background: 'var(--accent)', color: 'var(--on)', borderColor: 'var(--accent)' } : { borderColor: 'var(--line)' }}><I size={18} /></button>)}</div>
             {tab === 'Posts' ? <Collection authorId={profile.id} view={view} mode="public" /> : tab === 'Private' ? <Collection authorId={profile.id} view={view} mode="private" />
               : !canSee ? <p className="flex items-center justify-center gap-2 py-10 text-mute"><Lock size={16} />{name} keeps this private.</p> : ids ? <Collection ids={ids} view={view} /> : <p className="py-8 text-center text-mute">Loading…</p>}</>)}</div>

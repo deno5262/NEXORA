@@ -91,6 +91,7 @@ export function PostCard({ post, saved, onSaved, onDeleted, autoOpen, following,
     {menu && <PostMenu post={{ ...p, reactions, comments: n }} mine={p.author.id === uid} saved={saved} onSave={toggleSave} onClose={() => setMenu(false)} onEdited={x => setP({ ...p, ...x })} onDeleted={onDeleted} />}
     {share && <ShareSheet post={p} onClose={() => setShare(false)} />}</article>)
 }
+const Sk = () => <div className="animate-pulse overflow-hidden rounded-2xl border border-line bg-surface"><div className="flex items-center gap-2 p-3"><div className="h-9 w-9 rounded-full bg-line" /><div className="h-3 w-32 rounded bg-line" /></div><div className="aspect-[4/5] bg-line" /><div className="h-12" /></div>
 function rank(ps: Post[], tab: string, plain: boolean, fol: Set<string>, fr: Set<string>): Post[] {
   if (plain) return ps
   if (tab === 'following') return ps.filter(p => fol.has(p.author.id))
@@ -111,7 +112,7 @@ export default function Feed({ authorId, ids, tab = 'foryou', mode }: { authorId
     Promise.all([fetchPosts({ authorId, ids }), fetchSavedIds(), fetchFollowingIds(uid), fetchFriendIds(uid)]).then(([ps0, s, f2, fr2]) => { const ps = mode === 'private' ? ps0.filter(p => p.audience === 'only_me') : mode === 'public' ? ps0.filter(p => p.audience !== 'only_me') : ps0; setFol(f2); setPosts(rank(ps, tab, !!authorId || !!ids, f2, fr2)); setSaved(s) }).catch(e => setErr(e.message))
   }, [authorId, ids?.join(','), tab, mode])
   if (err) return <p role="alert" className="text-red-400">{err}</p>
-  if (!posts) return <p className="py-10 text-center text-mute">Loading…</p>
+  if (!posts) return <div className="flex flex-col gap-5"><Sk /><Sk /></div>
   if (!posts.length) return <p className="py-10 text-center text-mute">{authorId || ids ? 'No photo posts yet.' : tab === 'trending' ? 'Nothing is trending yet.' : tab === 'following' ? 'Follow people to see their posts here.' : tab === 'friends' ? 'Add friends to see their posts here.' : 'No photo posts yet. Tap + to create one.'}</p>
   return <div className="flex flex-col gap-5 text-ink">{posts.map(p => <PostCard key={p.id} post={p} saved={saved.has(p.id)}
     onSaved={v => setSaved(prev => { const s = new Set(prev); if (v) s.add(p.id); else s.delete(p.id); return s })} onDeleted={() => setPosts(posts.filter(x => x.id !== p.id))} following={fol.has(p.author.id)} onFollow={() => setFol(prev => new Set(prev).add(p.author.id))} />)}</div>

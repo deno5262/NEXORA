@@ -28,3 +28,6 @@ html,body,#root{height:100%}body{background:var(--bg);color:var(--ink);font-fami
 @keyframes burst{0%{transform:scale(.3);opacity:0}25%{transform:scale(1.25);opacity:1}70%{transform:scale(1);opacity:1}100%{transform:scale(1.1);opacity:0}}
 .pop-in{animation:popIn .28s cubic-bezier(.2,1.6,.4,1) both}.heart-burst{animation:burst .8s ease-out forwards}
 [data-theme=black_red]{--bg:#050506;--surface:#101014;--line:#2a1219;--ink:#f6f1f3;--mute:#9b8a90;--accent:#ff2d55;--accent2:#ff7a3d;--on:#fff}
+.no-scrollbar{scrollbar-width:none}.no-scrollbar::-webkit-scrollbar{display:none}
+@keyframes eq{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+.eq-bar{animation:eq 900ms ease-in-out infinite;transform-origin:center}
