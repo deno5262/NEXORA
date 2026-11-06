@@ -19,4 +19,4 @@ export function dayLabel(iso: string) {
   const d = new Date(iso); const same = (a: Date, b: Date) => a.toDateString() === b.toDateString()
   return same(d, new Date()) ? 'Today' : same(d, new Date(Date.now() - 864e5)) ? 'Yesterday' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
-export const previewOf = (c: Conv, uid: string) => (c.last_sender === uid ? 'You: ' : '') + (c.last_at && !c.last_kind ? 'Say hi 👋' : c.last_deleted ? 'Message deleted' : c.last_kind === 'image' ? '📷 Photo' : c.last_kind === 'file' ? '📎 File' : c.last_body ?? '')
+export const previewOf = (c: Conv, uid: string) => (c.last_sender === uid ? 'You: ' : '') + (c.last_at && !c.last_kind ? 'Say hi 👋' : c.last_deleted ? 'Message deleted' : c.last_kind === 'image' ? '📷 Photo' : c.last_kind === 'voice' ? '🎤 Voice message' : c.last_kind === 'video' ? '🎥 Video' : c.last_kind === 'file' ? '📎 File' : c.last_body ?? '')

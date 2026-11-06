@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as Img, Bookmark, Eye, Users, MessageCircleMore } from 'lucide-react'
+import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as Img, Bookmark, Eye, Users, MessageCircleMore, Ban } from 'lucide-react'
 import { supabase, THEMES, THEME_COLORS } from './supabase'
 import { useAuth } from './AuthContext'
 import { soundOn } from './ui'
@@ -73,6 +73,16 @@ function TextoraSettings() {
     <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span>Who can start a chat with me</span><select className="rounded-lg border border-line bg-bg px-2 py-1" value={profile?.who_can_message ?? 'everyone'} onChange={e => set('who_can_message', e.target.value)}><option value="everyone">Everyone</option><option value="friends">Friends only</option><option value="nobody">Nobody</option></select></label>
     <p className="text-sm text-mute">Active status is an estimate based on this app being open. It can't see whether your phone's mobile data is on.</p></div>)
 }
+function BlockedUsers() {
+  const { session } = useAuth(); const uid = session!.user.id; const [list, setList] = useState<any[] | null>(null)
+  const load = () => supabase.from('blocks').select('blocked_id,who:profiles!blocks_blocked_id_fkey(id,username,full_name,avatar_url)').eq('blocker_id', uid).then(({ data }) => setList(data ?? []))
+  useEffect(() => { load() }, [])
+  const unblock = async (id: string) => { await supabase.from('blocks').delete().eq('blocker_id', uid).eq('blocked_id', id); load() }
+  return (<div className="flex flex-col gap-3"><h2 className="font-bold">Blocked users</h2>
+    {!list && <p className="text-mute">Loading…</p>}{list && !list.length && <p className="text-mute">You haven't blocked anyone.</p>}
+    {list?.map(b => <div key={b.blocked_id} className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span className="min-w-0 truncate"><b>{b.who.full_name || b.who.username}</b> <span className="text-sm text-mute">@{b.who.username}</span></span><button onClick={() => unblock(b.blocked_id)} className="rounded-full border border-line px-3 py-1 text-sm">Unblock</button></div>)}
+    <p className="text-sm text-mute">Blocked people can't message you. Blocking does not hide their posts yet.</p></div>)
+}
 export default function Settings() {
   const { section } = useParams()
   if (section === 'account') return <Account />
@@ -82,7 +92,8 @@ export default function Settings() {
   if (section === 'photos') return <Photos />
   if (section === 'privacy') return <Privacy />
   if (section === 'textora') return <TextoraSettings />
-  const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds'], ['photos', Img, 'Photo display'], ['privacy', Eye, 'Privacy'], ['textora', MessageCircleMore, 'TEXTORA']]
+  if (section === 'blocked') return <BlockedUsers />
+  const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds'], ['photos', Img, 'Photo display'], ['privacy', Eye, 'Privacy'], ['textora', MessageCircleMore, 'TEXTORA'], ['blocked', Ban, 'Blocked users']]
   return (<div className="flex flex-col gap-3"><h1 className="text-xl font-bold">Settings</h1>
     {rows.map(([id, I, label]) => <Link key={id} to={`/settings/${id}`} className="flex items-center gap-3 rounded-xl border border-line p-3"><I className="text-accent" /><span className="flex-1">{label}</span><ChevronRight className="text-mute" /></Link>)}
     <Link to="/friends" className="flex items-center gap-3 rounded-xl border border-line p-3"><Users className="text-accent" /><span className="flex-1">Friends & requests</span><ChevronRight className="text-mute" /></Link>
