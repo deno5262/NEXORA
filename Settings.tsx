@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as Img, Bookmark, Eye, Users } from 'lucide-react'
+import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as Img, Bookmark, Eye, Users, MessageCircleMore } from 'lucide-react'
 import { supabase, THEMES, THEME_COLORS } from './supabase'
 import { useAuth } from './AuthContext'
 import { soundOn } from './ui'
@@ -65,6 +65,14 @@ function Privacy() {
     <h3 className="mt-2 font-semibold">Who can see my lists</h3>{vis('following_visibility', 'People I follow')}{vis('followers_visibility', 'My followers')}{vis('friends_visibility', 'My friends')}
     <p className="text-sm text-mute">Note: a reaction you give is still visible on that post to people who can see the post.</p></div>)
 }
+function TextoraSettings() {
+  const { profile, refresh } = useAuth()
+  const set = async (k: string, v: string | boolean) => { await supabase.from('profiles').update({ [k]: v }).eq('id', profile!.id); refresh() }
+  return (<div className="flex flex-col gap-3"><h2 className="font-bold">TEXTORA</h2>
+    <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span>Show my active status<small className="block text-mute">When off, others can't see when you're online, and you can't see theirs.</small></span><input type="checkbox" checked={profile?.show_active !== false} onChange={e => set('show_active', e.target.checked)} /></label>
+    <label className="flex items-center justify-between gap-3 rounded-xl border border-line p-3"><span>Who can start a chat with me</span><select className="rounded-lg border border-line bg-bg px-2 py-1" value={profile?.who_can_message ?? 'everyone'} onChange={e => set('who_can_message', e.target.value)}><option value="everyone">Everyone</option><option value="friends">Friends only</option><option value="nobody">Nobody</option></select></label>
+    <p className="text-sm text-mute">Active status is an estimate based on this app being open. It can't see whether your phone's mobile data is on.</p></div>)
+}
 export default function Settings() {
   const { section } = useParams()
   if (section === 'account') return <Account />
@@ -73,7 +81,8 @@ export default function Settings() {
   if (section === 'reactions') return <Reactions />
   if (section === 'photos') return <Photos />
   if (section === 'privacy') return <Privacy />
-  const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds'], ['photos', Img, 'Photo display'], ['privacy', Eye, 'Privacy']]
+  if (section === 'textora') return <TextoraSettings />
+  const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds'], ['photos', Img, 'Photo display'], ['privacy', Eye, 'Privacy'], ['textora', MessageCircleMore, 'TEXTORA']]
   return (<div className="flex flex-col gap-3"><h1 className="text-xl font-bold">Settings</h1>
     {rows.map(([id, I, label]) => <Link key={id} to={`/settings/${id}`} className="flex items-center gap-3 rounded-xl border border-line p-3"><I className="text-accent" /><span className="flex-1">{label}</span><ChevronRight className="text-mute" /></Link>)}
     <Link to="/friends" className="flex items-center gap-3 rounded-xl border border-line p-3"><Users className="text-accent" /><span className="flex-1">Friends & requests</span><ChevronRight className="text-mute" /></Link>

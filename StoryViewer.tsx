@@ -51,7 +51,7 @@ export default function StoryViewer({ groups, start, onClose }: { groups: Group[
   }
   const sendReply = async (e: FormEvent) => {
     e.preventDefault(); const t = reply.trim(); if (!t || !s) return
-    const r = await supabase.from('story_replies').insert({ story_id: s.id, sender_id: uid, body: t }); if (r.error) setMsg(r.error.message); else { setReply(''); setMsg('Reply sent') }
+    const r = await supabase.from('story_replies').insert({ story_id: s.id, sender_id: uid, body: t }); if (r.error) setMsg(r.error.message); else { setReply(''); setMsg('Reply sent'); try { const cid = await supabase.rpc('start_direct', { other: g.author.id }); if (!cid.error && cid.data) await supabase.from('messages').insert({ conversation_id: cid.data, sender_id: uid, kind: 'text', body: `↩ Replied to your story: ${t}` }) } catch { /* chat is optional */ } }
   }
   const del = async () => {
     if (!s || !confirm('Delete this story?')) return

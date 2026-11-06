@@ -6,8 +6,19 @@ import ThemeMenu from './ThemeMenu'
 import Logo from './Logo'
 import LiveAlerts from './LiveAlerts'
 import { countActivity } from './activityApi'
+import { textoraUnread } from './textora'
 export default function Shell() {
-  const { profile, session } = useAuth(); const [unread, setUnread] = useState(0); const { pathname } = useLocation(); const top = ['/', '/stories', '/activity'].includes(pathname); const nav = useNavigate(); const [open, setOpen] = useState(false)
+  const { profile, session } = useAuth(); const [unread, setUnread] = useState(0); const [tUnread, setTUnread] = useState(0); const [offline, setOffline] = useState(!navigator.onLine); const { pathname } = useLocation(); const top = ['/', '/stories', '/activity'].includes(pathname); const nav = useNavigate(); const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const on = () => setOffline(false), off = () => setOffline(true); window.addEventListener('online', on); window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
+  }, [])
+  useEffect(() => {
+    if (!session) return
+    const run = () => { textoraUnread().then(setTUnread).catch(() => {}) }
+    run(); const id = setInterval(run, 45000); window.addEventListener('textora-unread', run); window.addEventListener('focus', run)
+    return () => { clearInterval(id); window.removeEventListener('textora-unread', run); window.removeEventListener('focus', run) }
+  }, [session?.user.id])
   useEffect(() => {
     const uid = session?.user.id; if (!uid) return
     const run = () => { countActivity(uid).then(setUnread).catch(() => {}) }
@@ -22,11 +33,11 @@ export default function Shell() {
     <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-bg/95 px-4 py-3 backdrop-blur">
       {!top && <button aria-label="Back" onClick={() => nav(-1)} className="-ml-1 p-1"><ChevronLeft size={26} /></button>}<Link to="/" className="mr-auto text-xl font-extrabold tracking-widest text-accent"><Logo /></Link>
       <Link to="/search" aria-label="Search" className="p-2"><Search size={22} /></Link>
-      <ThemeMenu /><Link to="/textora" aria-label="TEXTORA" className="p-2"><MessageCircleMore size={22} /></Link>
+      <ThemeMenu /><Link to="/textora" aria-label="TEXTORA" className="relative p-2"><MessageCircleMore size={22} />{tUnread > 0 && <span className="absolute right-0 top-0 min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-4 text-white">{tUnread > 99 ? '99+' : tUnread}</span>}</Link>
       {pathname === '/profile' ? <Link to="/settings" aria-label="Settings" className="p-2"><Cog size={22} /></Link> : <Link to="/profile" aria-label="Profile" className="h-8 w-8 overflow-hidden rounded-full border border-accent bg-surface">
         {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center text-sm font-bold">{(profile?.full_name || profile?.username || '?')[0]?.toUpperCase()}</span>}</Link>}
     </header>
-    <LiveAlerts /><main className="flex-1 px-4 pb-28 pt-4"><Outlet /></main>
+    <LiveAlerts />{offline && <div className="fixed inset-x-0 top-0 z-[60] bg-red-600 py-1 text-center text-sm text-white">You're offline. Some features need an internet connection.</div>}<main className="flex-1 px-4 pb-28 pt-4"><Outlet /></main>
     <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto grid max-w-xl grid-cols-4 items-center border-t border-line bg-bg/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
       {item('/', Home, 'Home')}{item('/stories', CircleDot, 'Stories')}
       <button aria-label="Create" onClick={() => setOpen(true)} className="mx-auto -mt-6 grid h-14 w-14 place-items-center rounded-full bg-accent text-on shadow-lg"><Plus size={28} /></button>
