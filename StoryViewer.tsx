@@ -1,3 +1,4 @@
+import { useBackClose } from './useBackClose'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { X, Volume2, VolumeX, Eye, Trash2, Send } from 'lucide-react'
 import { supabase } from './supabase'
@@ -24,6 +25,7 @@ function Viewers({ storyId, audience, onClose, onDelete }: { storyId: string; au
     {!views.length && <p className="text-center text-mute">No views yet.</p>}</div>)
 }
 export default function StoryViewer({ groups, start, onClose }: { groups: Group[]; start: number; onClose: () => void }) {
+  useBackClose(true, onClose)
   const { session } = useAuth(); const uid = session!.user.id
   const [list, setList] = useState<Group[]>(groups); const [gi, setGi] = useState(start); const [si, setSi] = useState(0); const [prog, setProg] = useState(0); const [paused, setPaused] = useState(false); const [muted, setMuted] = useState(false)
   const [sheet, setSheet] = useState(false); const [reply, setReply] = useState(''); const [myReact, setMyReact] = useState<string | null>(null); const [msg, setMsg] = useState('')

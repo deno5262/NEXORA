@@ -1,3 +1,4 @@
+import { useBackClose } from './useBackClose'
 import { useState } from 'react'
 import { Bookmark, Link2, Pencil, BarChart3, Trash2, Flag, X } from 'lucide-react'
 import { supabase } from './supabase'
@@ -5,9 +6,12 @@ import { useAuth } from './AuthContext'
 import { Post, EMOJI } from './posts'
 const REASONS = ['Spam or scam', 'Nudity or sexual content', 'Harassment or hate', 'Violence or dangerous acts', 'False information', 'Something else']
 const link = (p: Post) => `${location.origin}/post/${p.id}`
-const Sheet = ({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) => (
+function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useBackClose(true, onClose)
+  return (
   <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={onClose}><div className="mx-auto w-full max-w-xl rounded-t-2xl bg-surface p-4 text-ink" onClick={e => e.stopPropagation()}>
     <div className="mb-3 flex items-center justify-between"><b>{title}</b><button onClick={onClose} aria-label="Close"><X /></button></div>{children}</div></div>)
+}
 export function ShareSheet({ post, onClose }: { post: Post; onClose: () => void }) {
   const [done, setDone] = useState(''); const u = encodeURIComponent(link(post))
   const copy = async () => { try { await navigator.clipboard.writeText(link(post)); setDone('Link copied') } catch { setDone('Could not copy. Long-press the address bar instead.') } }

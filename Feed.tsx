@@ -1,3 +1,5 @@
+import { useRefresh } from './useRefresh'
+import { useBackClose } from './useBackClose'
 import { ReactNode, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MessageCircle, Globe, Users, Lock, X, Heart, ThumbsUp, ChevronDown, Share2, Bookmark, MoreHorizontal, Eye } from 'lucide-react'
@@ -16,6 +18,7 @@ function ImageBox({ url, onOpen, onDouble }: { url?: string; onOpen: () => void;
     <img src={url} alt="" loading="lazy" onLoad={e => setNat([e.currentTarget.naturalWidth, e.currentTarget.naturalHeight])} className={`h-full w-full ${mode === 'smart' ? 'object-cover' : 'object-contain'}`} /></button>
 }
 function Viewer({ post, start, onClose, bar }: { post: Post; start: number; onClose: () => void; bar: ReactNode }) {
+  useBackClose(true, onClose)
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => { ref.current?.scrollTo({ left: start * ref.current.clientWidth }) }, [])
   return (<div className="fixed inset-0 z-40 flex flex-col bg-black text-white">
@@ -106,11 +109,11 @@ function rank(ps: Post[], tab: string, plain: boolean, fol: Set<string>, fr: Set
   return out
 }
 export default function Feed({ authorId, ids, tab = 'foryou', mode }: { authorId?: string; ids?: string[]; tab?: string; mode?: 'public' | 'private' }) {
-  const [posts, setPosts] = useState<Post[] | null>(null); const [saved, setSaved] = useState<Set<string>>(new Set()); const [err, setErr] = useState(''); const { session } = useAuth(); const uid = session!.user.id; const [fol, setFol] = useState<Set<string>>(new Set())
+  const [posts, setPosts] = useState<Post[] | null>(null); const [saved, setSaved] = useState<Set<string>>(new Set()); const [err, setErr] = useState(''); const { session } = useAuth(); const uid = session!.user.id; const [fol, setFol] = useState<Set<string>>(new Set()); const [tick, setTick] = useState(0); useRefresh(() => setTick(t => t + 1))
   useEffect(() => {
     setPosts(null); setErr('')
     Promise.all([fetchPosts({ authorId, ids }), fetchSavedIds(), fetchFollowingIds(uid), fetchFriendIds(uid)]).then(([ps0, s, f2, fr2]) => { const ps = mode === 'private' ? ps0.filter(p => p.audience === 'only_me') : mode === 'public' ? ps0.filter(p => p.audience !== 'only_me') : ps0; setFol(f2); setPosts(rank(ps, tab, !!authorId || !!ids, f2, fr2)); setSaved(s) }).catch(e => setErr(e.message))
-  }, [authorId, ids?.join(','), tab, mode])
+  }, [authorId, ids?.join(','), tab, mode, tick])
   if (err) return <p role="alert" className="text-red-400">{err}</p>
   if (!posts) return <div className="flex flex-col gap-5"><Sk /><Sk /></div>
   if (!posts.length) return <p className="py-10 text-center text-mute">{authorId || ids ? 'No photo posts yet.' : tab === 'trending' ? 'Nothing is trending yet.' : tab === 'following' ? 'Follow people to see their posts here.' : tab === 'friends' ? 'Add friends to see their posts here.' : 'No photo posts yet. Tap + to create one.'}</p>

@@ -1,3 +1,4 @@
+import { useRefresh } from './useRefresh'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Camera, Droplet, MapPin, Home, Globe, Heart, GraduationCap, Briefcase, Cake, Calendar, UserPlus, UserCheck, LayoutGrid, List, Eye, Lock, Image as ImageIcon, Play, Star, Repeat2, ChevronDown, ChevronLeft, ChevronRight, Facebook, Instagram, Youtube, Twitter, Music2, Phone, Send } from 'lucide-react'
@@ -58,6 +59,7 @@ export default function Profile() {
     setC({ posts: po, photos: ph, followers: Number(pc.followers), following: Number(pc.following), likes: li, views: vw, friends: Number(pc.friends) })
   }
   useEffect(() => { loadCounts() }, [pid])
+  useRefresh(loadCounts)
   const canSee = tab === 'Favorites' ? own || !!profile?.show_favorites : tab === 'Liked' ? own || !!profile?.show_liked : true
   useEffect(() => {
     setIds(null); if (!pid || !canSee || (tab !== 'Favorites' && tab !== 'Liked')) return

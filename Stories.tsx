@@ -1,3 +1,4 @@
+import { useRefresh } from './useRefresh'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Archive as ArchiveIcon, Play } from 'lucide-react'
@@ -20,6 +21,7 @@ export default function Stories() {
   const { session } = useAuth(); const uid = session!.user.id
   const [groups, setGroups] = useState<Group[] | null>(null); const [open, setOpen] = useState<number | null>(null); const [err, setErr] = useState('')
   const load = () => fetchGroups(uid).then(setGroups).catch(e => setErr(e.message))
+  useRefresh(load)
   useEffect(() => { load() }, [])
   return (<div className="flex flex-col gap-4"><div className="flex items-center justify-between"><h1 className="text-xl font-bold">Stories</h1>
     <Link to="/stories/archive" className="flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-sm"><ArchiveIcon size={16} />Archive</Link></div>

@@ -1,3 +1,4 @@
+import { useBackClose } from './useBackClose'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { X, ImagePlus, Heart, Mic, Square } from 'lucide-react'
 import { supabase } from './supabase'
@@ -9,10 +10,12 @@ import MentionInput from './MentionInput'
 import { VoicePlayer, computePeaks } from './Voice'
 type C = { id: string; parent_id: string | null; body: string; created_at: string; image_path: string | null; audio_path: string | null; audio_peaks: number[] | null; audio_ms: number | null; author_id: string; author: { username: string; full_name: string; avatar_url: string | null }; comment_reactions: { user_id: string }[] }
 export default function CommentSheet({ postId, onClose, onCount }: { postId: string; onClose: () => void; onCount: (n: number) => void }) {
+  useBackClose(true, onClose)
   const { session } = useAuth(); const uid = session!.user.id
   const [list, setList] = useState<C[]>([]); const [urls, setUrls] = useState<Record<string, string>>({}); const [body, setBody] = useState(''); const [file, setFile] = useState<File | null>(null)
   const [reply, setReply] = useState<C | null>(null); const [open, setOpen] = useState<Set<string>>(new Set()); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
   const [voice, setVoice] = useState<Blob | null>(null); const [recording, setRecording] = useState(false); const [peek, setPeek] = useState(false)
+  useBackClose(peek, () => setPeek(false))
   const [vp, setVp] = useState<{ peaks: number[] | null; ms: number } | null>(null)
   useEffect(() => { if (!voice) { setVp(null); return } computePeaks(voice).then(setVp) }, [voice])
   const inputRef = useRef<any>(null); const recRef = useRef<MediaRecorder | null>(null); const recTimer = useRef(0)

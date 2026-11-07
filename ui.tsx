@@ -12,3 +12,5 @@ export function playPop() {
   } catch { /* sound is optional */ }
 }
 export const short = (n: number) => (n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + 'K' : String(n))
+export const Avatar = ({ a, s = 56 }: { a: { avatar_url: string | null; full_name: string; username: string }; s?: number }) => <span className="grid shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-surface font-bold" style={{ width: s, height: s, fontSize: s / 2.6 }}>
+  {a.avatar_url ? <img src={a.avatar_url} alt="" className="h-full w-full object-cover" /> : (a.full_name || a.username)[0]?.toUpperCase()}</span>

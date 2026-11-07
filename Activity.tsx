@@ -1,3 +1,4 @@
+import { useRefresh } from './useRefresh'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from './supabase'
@@ -9,7 +10,7 @@ type W = { username: string; full_name: string; avatar_url: string | null }
 type Item = { id: string; at: string; who: W; text: string; to: string; followerId?: string; reqId?: string }
 export default function Activity() {
   const { session } = useAuth(); const uid = session!.user.id
-  const [items, setItems] = useState<Item[] | null>(null); const [err, setErr] = useState(''); const [fol, setFol] = useState<Set<string>>(new Set())
+  const [items, setItems] = useState<Item[] | null>(null); const [err, setErr] = useState(''); const [fol, setFol] = useState<Set<string>>(new Set()); const [tick, setTick] = useState(0); useRefresh(() => setTick(t => t + 1))
   useEffect(() => {
     (async () => {
       const out: Item[] = []
@@ -35,7 +36,7 @@ export default function Activity() {
       setFol(await fetchFollowingIds(uid))
       out.sort((a, b) => +new Date(b.at) - +new Date(a.at)); setItems(out.slice(0, 60)); markSeen(uid)
     })().catch(e => setErr(e.message))
-  }, [])
+  }, [tick])
   const followBack = async (id: string) => { const r = await supabase.from('follows').insert({ follower_id: uid, following_id: id }); if (!r.error) setFol(new Set(fol).add(id)) }
   const answer = async (i: Item, accept: boolean) => { const r = await supabase.rpc('respond_friend_request', { req: i.reqId, accept }); if (!r.error) setItems(items!.filter(x => x.id !== i.id)) }
   if (err) return <p role="alert" className="text-red-400">{err}</p>

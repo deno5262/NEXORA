@@ -1,3 +1,4 @@
+import { useRefresh } from './useRefresh'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
@@ -9,6 +10,7 @@ export default function StoryRow() {
   const { profile, session } = useAuth(); const uid = session!.user.id
   const [groups, setGroups] = useState<Group[] | null>(null); const [open, setOpen] = useState<number | null>(null)
   const load = () => fetchGroups(uid).then(setGroups).catch(() => setGroups([]))
+  useRefresh(load)
   useEffect(() => { load() }, [])
   const mine = groups?.findIndex(g => g.mine) ?? -1
   const av = (a: { avatar_url: string | null; full_name: string; username: string }) => a.avatar_url ? <img src={a.avatar_url} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full w-full place-items-center font-bold">{(a.full_name || a.username)[0]?.toUpperCase()}</span>

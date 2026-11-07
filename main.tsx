@@ -34,7 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Route path="stories" element={<Stories />} /><Route path="stories/archive" element={<StoryArchive />} />
       <Route path="notifications" element={<Navigate to="/activity" replace />} /><Route path="activity" element={<Activity />} /><Route path="post/:id" element={<PostPage />} /><Route path="saved" element={<Saved />} />
       <Route path="search" element={<Search />} /><Route path="friends" element={<Friends />} />
-      <Route path="textora" element={<Textora />} /><Route path="textora/c/:id" element={<Chat />} />
+      <Route path="textora" element={<Textora tab="chats" />} /><Route path="textora/people" element={<Textora tab="people" />} /><Route path="textora/me" element={<Textora tab="me" />} /><Route path="textora/c/:id" element={<Chat />} />
       <Route path="create/post" element={<CreatePost />} />
       <Route path="create/story" element={<CreateStory />} />
       <Route path="profile" element={<Profile />} /><Route path="u/:username" element={<Profile />} /><Route path="u/:username/list/:kind" element={<FollowList />} />

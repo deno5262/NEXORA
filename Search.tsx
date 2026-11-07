@@ -1,3 +1,4 @@
+import { useBackClose } from './useBackClose'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search as SearchIcon, Mic, X, Clock, Hash } from 'lucide-react'
@@ -11,6 +12,7 @@ import RelationButtons from './Relation'
 type W = { id: string; username: string; full_name: string; avatar_url: string | null; level: string }
 const RECENT = 'recentSearches'
 function VoiceOverlay({ lang, setLang, onResult, onClose }: { lang: string; setLang: (l: string) => void; onResult: (t: string) => void; onClose: () => void }) {
+  useBackClose(true, onClose)
   const [heard, setHeard] = useState(''); const [state, setState] = useState('listening'); const [msg, setMsg] = useState(''); const rec = useRef<any>(null)
   const start = () => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition

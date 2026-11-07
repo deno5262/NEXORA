@@ -4,6 +4,7 @@ import { UserCog, Lock, Palette, Heart, LogOut, ChevronRight, ThumbsUp, Image as
 import { supabase, THEMES, THEME_COLORS } from './supabase'
 import { useAuth } from './AuthContext'
 import { soundOn } from './ui'
+import { TextoraPrefs, BlockedList } from './TextoraSettings'
 const Msg = ({ t }: { t: string }) => (t ? <p role="status" className="text-mute">{t}</p> : null)
 function Account() {
   const { profile, session, refresh } = useAuth()
@@ -91,8 +92,8 @@ export default function Settings() {
   if (section === 'reactions') return <Reactions />
   if (section === 'photos') return <Photos />
   if (section === 'privacy') return <Privacy />
-  if (section === 'textora') return <TextoraSettings />
-  if (section === 'blocked') return <BlockedUsers />
+  if (section === 'textora') return <TextoraPrefs />
+  if (section === 'blocked') return <BlockedList />
   const rows: [string, typeof Lock, string][] = [['account', UserCog, 'Account information'], ['security', Lock, 'Password & security'], ['appearance', Palette, 'Theme'], ['reactions', Heart, 'Reactions & sounds'], ['photos', Img, 'Photo display'], ['privacy', Eye, 'Privacy'], ['textora', MessageCircleMore, 'TEXTORA'], ['blocked', Ban, 'Blocked users']]
   return (<div className="flex flex-col gap-3"><h1 className="text-xl font-bold">Settings</h1>
     {rows.map(([id, I, label]) => <Link key={id} to={`/settings/${id}`} className="flex items-center gap-3 rounded-xl border border-line p-3"><I className="text-accent" /><span className="flex-1">{label}</span><ChevronRight className="text-mute" /></Link>)}

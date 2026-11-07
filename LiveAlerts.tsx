@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import { useAuth } from './AuthContext'
 import { Av } from './ui'
+import { playNotify } from './sounds'
 import { EMOJI } from './posts'
 type W = { username: string; full_name: string; avatar_url: string | null }
 type Toast = { who: W; text: string; postId?: string; commentId?: string; followerId?: string; reqId?: string; chatId?: string }
 export default function LiveAlerts() {
   const { session } = useAuth(); const uid = session!.user.id; const nav = useNavigate(); const [t, setT] = useState<Toast | null>(null); const timer = useRef(0)
-  const show = (x: Toast) => { setT(x); window.dispatchEvent(new Event('activity-new')); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => setT(null), 5000) }
+  const show = (x: Toast) => { playNotify(); setT(x); window.dispatchEvent(new Event('activity-new')); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => setT(null), 5000) }
   const who = async (id: string) => (await supabase.from('profiles').select('username,full_name,avatar_url').eq('id', id).single()).data as W | null
   useEffect(() => {
     const ch = supabase.channel('live-' + uid)
