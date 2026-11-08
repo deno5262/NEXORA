@@ -39,6 +39,7 @@ export function TextoraPrefs() {
       <label className={row}>Notification sound<input type="checkbox" checked={flag('notifySound')} onChange={e => toggle('notifySound', e.target.checked)} /></label>
       <label className={row}>Notification volume<select className="rounded-lg border border-line bg-bg px-2 py-1" defaultValue={localStorage.getItem('notifyVol') ?? 'high'} onChange={e => localStorage.setItem('notifyVol', e.target.value)}><option value="low">Low</option><option value="mid">Medium</option><option value="high">High</option></select></label>
       <button onClick={() => playNotify(true)} className="rounded-xl border border-line p-3 text-left">▶ Play a test sound</button>
+      <label className={row}>Message seen sound<input type="checkbox" checked={flag('seenSound')} onChange={e => toggle('seenSound', e.target.checked)} /></label>
       <label className={row}>Message sent sound<input type="checkbox" checked={flag('sendSound')} onChange={e => toggle('sendSound', e.target.checked)} /></label>
       <label className={row}>Someone is typing sound<input type="checkbox" checked={flag('typingSound')} onChange={e => toggle('typingSound', e.target.checked)} /></label>
       <p className="text-sm text-mute">Sounds play while NEXORA is open. Alerts when the app is closed need push notifications, which are not built yet.</p></section>

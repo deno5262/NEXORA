@@ -32,3 +32,5 @@ html,body,#root{height:100%}body{background:var(--bg);color:var(--ink);font-fami
 @keyframes eq{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
 .eq-bar{animation:eq 900ms ease-in-out infinite;transform-origin:center}
 html,body{overscroll-behavior-y:contain}
+@keyframes tdots{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+.tdot{display:inline-block;width:7px;height:7px;border-radius:9999px;background:var(--mute);animation:tdots 1.2s infinite ease-in-out}

@@ -13,3 +13,4 @@ export function playNotify(force = false) {
 }
 export function playSend() { if (!on('sendSound')) return; try { const c = get(), t = c.currentTime; tone(c, 520, t, 0.1, 0.3, 'sine'); tone(c, 780, t + 0.07, 0.16, 0.3, 'sine') } catch { /* optional */ } }
 export function playTyping() { if (!on('typingSound')) return; try { const c = get(), t = c.currentTime; tone(c, 1000, t, 0.06, 0.2, 'sine'); tone(c, 1300, t + 0.06, 0.07, 0.18, 'sine') } catch { /* optional */ } }
+export function playSeen() { if (!on('seenSound')) return; try { const c = get(), t = c.currentTime; tone(c, 660, t, 0.1, 0.25, 'sine'); tone(c, 990, t + 0.09, 0.18, 0.25, 'sine') } catch { /* optional */ } }

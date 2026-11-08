@@ -8,7 +8,7 @@ import { useOnline } from './Presence'
 import { useTypingView } from './useTyping'
 import { useBackClose } from './useBackClose'
 import { fetchConvs, Conv, convAv, statusOf, ge, dayLabel } from './textora'
-import { playNotify, playSend, playTyping } from './sounds'
+import { playNotify, playSend, playTyping, playSeen } from './sounds'
 import { addBubble } from './bubbles'
 import { Avatar } from './ui'
 import { VoicePlayer, computePeaks } from './Voice'
@@ -40,6 +40,13 @@ export default function Chat() {
   const chan = useRef<any>(null); const typingT = useRef(0); const lastSent = useRef(0); const lastPub = useRef(0); const endRef = useRef<HTMLDivElement>(null); const msgsRef = useRef<Msg[]>([]); msgsRef.current = msgs; const typingRef = useRef<string | null>(null); typingRef.current = typing
   const rec = useRef<{ mr: MediaRecorder; chunks: BlobPart[]; discard: boolean; timer: number; secs: number } | null>(null)
   useBackClose(peek !== null, () => setPeek(null))
+  const seenRef = useRef(-1)
+  useEffect(() => {
+    const lm = [...msgs].reverse().find(m => m.sender_id === uid && m.kind !== 'system')
+    const n = lm ? members.filter(x => x.user_id !== uid && ge(x.last_read_at, lm.created_at)).length : 0
+    if (seenRef.current < 0) { if (msgs.length && members.length) seenRef.current = n; return }
+    if (n > seenRef.current && lm) playSeen(); seenRef.current = n
+  }, [msgs, members])
   const isGroup = conv?.kind === 'group'; const other = !isGroup ? members.find(m => m.user_id !== uid)?.profile : undefined; const typingMap = useTypingView(!isGroup)
   const prof = (pid: string) => members.find(m => m.user_id === pid)?.profile; const nameOf = (pid: string) => (pid === uid ? 'You' : prof(pid)?.full_name || prof(pid)?.username || 'Someone')
   const sign = async (paths: string[]) => {
@@ -236,7 +243,7 @@ export default function Chat() {
           {!sameN && <p className={`mt-0.5 flex items-center gap-1 text-[10px] text-mute ${mine ? 'justify-end' : 'ml-9'}`}>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             {mine && !m.deleted_at && m.id !== lastMine && (delivered(m) ? <CheckCheck size={12} /> : <Check size={12} />)}</p>}
           {m.id === lastMine && !m.deleted_at && <div className="mt-0.5 flex justify-end gap-0.5">{rd.length ? <>{rd.slice(0, 5).map(r => <Avatar key={r.user_id} a={r.profile} s={14} />)}{rd.length > 5 && <span className="text-[10px] text-mute">+{rd.length - 5}</span>}</> : <span className="text-[10px] text-mute">{delivered(m) ? 'Delivered' : 'Sent'}</span>}</div>}</div>) })}
-      {typing && <p className="mt-2 px-1 text-sm text-accent">{isGroup ? `${typer} is typing…` : 'Typing…'}</p>}<div ref={endRef} /></div>
+      {typing && <div className="mt-2 flex items-end gap-1"><div className="w-7 shrink-0"><Avatar a={prof(typing) ?? headAv} s={28} /></div><div aria-label="Typing" className="flex items-center gap-1 rounded-[20px] bg-surface px-4 py-3"><i className="tdot" /><i className="tdot" style={{ animationDelay: '.2s' }} /><i className="tdot" style={{ animationDelay: '.4s' }} /></div></div>}<div ref={endRef} /></div>
     <div className="border-t border-line bg-bg p-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
       {err && <p role="alert" className="px-2 pb-1 text-sm text-red-400">{err}</p>}
       {!isGroup && iBlocked ? <div className="flex items-center justify-between px-2 py-1 text-sm"><span className="text-mute">You blocked this person.</span><button onClick={toggleBlock} className="rounded-full border border-line px-3 py-1">Unblock</button></div>
