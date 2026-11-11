@@ -25,6 +25,14 @@ export function TypingAnother() {
     <label className={row}><span>Allow my name in other people's status<small className="block text-mute">Without this, you are never named.</small></span><input type="checkbox" checked={!!profile?.typing_name_consent} onChange={e => set('typing_name_consent', e.target.checked)} /></label>
     <p className="rounded-xl bg-surface p-3 text-sm"><span className="text-mute">Preview: </span><b>{preview}</b></p></section>)
 }
+function ExtraPrefs() {
+  const [heads, setHeads] = useState(localStorage.getItem('bubblesOn') !== 'off')
+  const refreshApp = async () => { try { (await navigator.serviceWorker?.getRegistrations())?.forEach(r => r.unregister()); (await caches.keys()).forEach(k => caches.delete(k)) } catch { /* ignore */ } location.reload() }
+  const row = 'flex items-center justify-between gap-3 rounded-xl border border-line p-3'
+  return (<section className="flex flex-col gap-2"><h2 className="font-bold">Preferences</h2>
+    <label className={row}><span>Chat heads<small className="block text-mute">Small floating chats while you browse NEXORA (inside this app only).</small></span><input type="checkbox" checked={heads} onChange={e => { localStorage.setItem('bubblesOn', e.target.checked ? 'on' : 'off'); setHeads(e.target.checked); window.dispatchEvent(new Event('bubbles')) }} /></label>
+    <button onClick={refreshApp} className={row + ' text-left'}><span>App updates<small className="block text-mute">Load the newest version now</small></span><span className="text-accent">Update</span></button></section>)
+}
 export function TextoraPrefs() {
   const { profile, refresh } = useAuth(); const [, force] = useState(0)
   const set = async (k: string, v: string | boolean) => { await supabase.from('profiles').update({ [k]: v }).eq('id', profile!.id); refresh() }
@@ -43,5 +51,5 @@ export function TextoraPrefs() {
       <label className={row}>Message sent sound<input type="checkbox" checked={flag('sendSound')} onChange={e => toggle('sendSound', e.target.checked)} /></label>
       <label className={row}>Someone is typing sound<input type="checkbox" checked={flag('typingSound')} onChange={e => toggle('typingSound', e.target.checked)} /></label>
       <p className="text-sm text-mute">Sounds play while NEXORA is open. Alerts when the app is closed need push notifications, which are not built yet.</p></section>
-    <TypingAnother /><BlockedList /></div>)
+    <ExtraPrefs /><TypingAnother /><BlockedList /></div>)
 }

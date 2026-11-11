@@ -36,7 +36,7 @@ export default function Bubbles() {
   const [list, setList] = useState<Bubble[]>(getBubbles()); const [open, setOpen] = useState<string | null>(null)
   useEffect(() => { const f = () => setList(getBubbles()); window.addEventListener('bubbles', f); return () => window.removeEventListener('bubbles', f) }, [])
   const cur = list.find(b => b.id === open)
-  if (!list.length) return null
+  if (!list.length || localStorage.getItem('bubblesOn') === 'off') return null
   return (<><div className="fixed right-3 z-30 flex flex-col gap-3" style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6.5rem)', display: cur ? 'none' : 'flex' }}>
     {list.map(b => <button key={b.id} onClick={() => setOpen(b.id)} aria-label={b.name} className="relative rounded-full shadow-xl"><Avatar a={{ avatar_url: b.avatar_url, full_name: b.name, username: b.name }} s={52} />
       <span role="button" aria-label="Close bubble" onClick={e => { e.stopPropagation(); removeBubble(b.id) }} className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full border border-line bg-bg text-xs">×</span></button>)}</div>

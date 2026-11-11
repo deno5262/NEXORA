@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Paperclip, Send, X, Check, CheckCheck, MoreHorizontal, MoreVertical, Reply, Copy, Pencil, Trash2, FileText, BellOff, Bell, Mic, Search, Forward, Pin, PinOff, Ban, Flag, Minimize2, Users } from 'lucide-react'
+import { ArrowLeft, Paperclip, Send, X, Check, CheckCheck, MoreHorizontal, MoreVertical, Reply, Copy, Pencil, Trash2, FileText, BellOff, Bell, Mic, Search, Forward, Pin, PinOff, Ban, Flag, Minimize2, Users, Clock, Palette, ImagePlus } from 'lucide-react'
 import { supabase } from './supabase'
 import { compress } from './image'
 import { useAuth } from './AuthContext'
@@ -10,13 +10,14 @@ import { useBackClose } from './useBackClose'
 import { fetchConvs, Conv, convAv, statusOf, ge, dayLabel } from './textora'
 import { playNotify, playSend, playTyping, playSeen } from './sounds'
 import { addBubble } from './bubbles'
+import { cacheGet, cacheSet } from './cache'
 import { Avatar } from './ui'
 import { VoicePlayer, computePeaks } from './Voice'
 import GroupInfo from './GroupInfo'
 type R = { user_id: string; emoji: string }
-type Msg = { id: string; conversation_id: string; sender_id: string; kind: string; body: string; reply_to: string | null; attachment_path: string | null; attachment_name: string | null; attachment_type: string | null; attachment_size: number | null; audio_peaks: number[] | null; audio_ms: number | null; forwarded: boolean; pinned_at: string | null; edited_at: string | null; deleted_at: string | null; created_at: string; reactions: R[] }
+type Msg = { id: string; conversation_id: string; sender_id: string; kind: string; body: string; reply_to: string | null; attachment_path: string | null; attachment_name: string | null; attachment_type: string | null; attachment_size: number | null; audio_peaks: number[] | null; audio_ms: number | null; forwarded: boolean; pinned_at: string | null; edited_at: string | null; deleted_at: string | null; created_at: string; reactions: R[]; pending?: boolean }
 type Prof = { id: string; username: string; full_name: string; avatar_url: string | null; show_active: boolean; last_active_at: string | null }
-type Mem = { user_id: string; role: string; last_read_at: string; last_delivered_at: string; muted: boolean; profile: Prof }
+type Mem = { user_id: string; role: string; last_read_at: string; last_delivered_at: string; muted: boolean; chat_bg?: string | null; profile: Prof }
 type Info = { kind: string; title: string | null; avatar_url: string | null; only_admins_add: boolean; created_by: string | null }
 const FILE_TYPES = ['application/pdf', 'text/plain', 'text/csv', 'application/zip', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.presentationml.presentation']
 const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime']
@@ -32,14 +33,15 @@ function Sheet({ onClose, children }: { onClose: () => void; children: React.Rea
 }
 export default function Chat() {
   const { id } = useParams(); const cid = id!; const nav = useNavigate(); const { session, profile } = useAuth(); const uid = session!.user.id; const online = useOnline()
-  const [conv, setConv] = useState<Info | null | undefined>(undefined); const [members, setMembers] = useState<Mem[]>([]); const [muted, setMuted] = useState(false)
-  const [msgs, setMsgs] = useState<Msg[]>([]); const [urls, setUrls] = useState<Record<string, string>>({}); const [text, setText] = useState(''); const [replyTo, setReplyTo] = useState<Msg | null>(null); const [editing, setEditing] = useState<Msg | null>(null)
+  const [conv, setConv] = useState<Info | null | undefined>(() => cacheGet<Info>(`info:${uid}:${cid}`) ?? undefined); const [members, setMembers] = useState<Mem[]>(() => cacheGet<Mem[]>(`mem:${uid}:${cid}`) ?? []); const [muted, setMuted] = useState(false)
+  const [msgs, setMsgs] = useState<Msg[]>(() => cacheGet<Msg[]>(`msgs:${uid}:${cid}`) ?? []); const [urls, setUrls] = useState<Record<string, string>>({}); const [text, setText] = useState(''); const [replyTo, setReplyTo] = useState<Msg | null>(null); const [editing, setEditing] = useState<Msg | null>(null)
   const [sheet, setSheet] = useState<Msg | null>(null); const [typing, setTyping] = useState<string | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [peek, setPeek] = useState<string | null>(null)
   const [menu, setMenu] = useState(false); const [fwd, setFwd] = useState<Msg | null>(null); const [fwdList, setFwdList] = useState<Conv[]>([]); const [rep, setRep] = useState<{ msg: Msg | null } | null>(null); const [repDone, setRepDone] = useState(''); const [groupInfo, setGroupInfo] = useState(false)
   const [searchOn, setSearchOn] = useState(false); const [sq, setSq] = useState(''); const [sres, setSres] = useState<Msg[]>([]); const [iBlocked, setIBlocked] = useState(false); const [blockedMe, setBlockedMe] = useState(false); const [recSecs, setRecSecs] = useState<number | null>(null)
   const chan = useRef<any>(null); const typingT = useRef(0); const lastSent = useRef(0); const lastPub = useRef(0); const endRef = useRef<HTMLDivElement>(null); const msgsRef = useRef<Msg[]>([]); msgsRef.current = msgs; const typingRef = useRef<string | null>(null); typingRef.current = typing
   const rec = useRef<{ mr: MediaRecorder; chunks: BlobPart[]; discard: boolean; timer: number; secs: number } | null>(null)
   useBackClose(peek !== null, () => setPeek(null))
+  const [offline, setOffline] = useState(!navigator.onLine); const [themeOpen, setThemeOpen] = useState(false); const [bgUrl, setBgUrl] = useState<string | null>(null); const outKey = `out:${uid}:${cid}`
   const seenRef = useRef(-1)
   useEffect(() => {
     const lm = [...msgs].reverse().find(m => m.sender_id === uid && m.kind !== 'system')
@@ -47,6 +49,24 @@ export default function Chat() {
     if (seenRef.current < 0) { if (msgs.length && members.length) seenRef.current = n; return }
     if (n > seenRef.current && lm) playSeen(); seenRef.current = n
   }, [msgs, members])
+  useEffect(() => { if (msgs.length) cacheSet(`msgs:${uid}:${cid}`, msgs.filter(m => !m.pending).slice(-60)) }, [msgs])
+  const myBg = members.find(m => m.user_id === uid)?.chat_bg ?? null
+  useEffect(() => { if (myBg?.startsWith('g:')) supabase.storage.from('chat').createSignedUrl(myBg.slice(2), 3600).then(({ data }) => setBgUrl(data?.signedUrl ?? null)); else setBgUrl(null) }, [myBg])
+  const flushOutbox = async () => {
+    const q = cacheGet<{ tmp: string; body: string; reply_to: string | null }[]>(outKey) ?? []; if (!q.length || !navigator.onLine) return
+    const left: typeof q = []
+    for (const o of q) {
+      const { data, error } = await supabase.from('messages').insert({ conversation_id: cid, sender_id: uid, kind: 'text', body: o.body, reply_to: o.reply_to }).select('*').single()
+      if (error) { left.push(o); continue }
+      const real = { ...(data as Msg), reactions: [] as R[] }; setMsgs(cur => [...cur.filter(x => x.id !== o.tmp && x.id !== real.id), real])
+    }
+    cacheSet(outKey, left)
+  }
+  useEffect(() => {
+    const on = () => { setOffline(false); flushOutbox() }; const off = () => setOffline(true)
+    window.addEventListener('online', on); window.addEventListener('offline', off); flushOutbox()
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
+  }, [cid])
   const isGroup = conv?.kind === 'group'; const other = !isGroup ? members.find(m => m.user_id !== uid)?.profile : undefined; const typingMap = useTypingView(!isGroup)
   const prof = (pid: string) => members.find(m => m.user_id === pid)?.profile; const nameOf = (pid: string) => (pid === uid ? 'You' : prof(pid)?.full_name || prof(pid)?.username || 'Someone')
   const sign = async (paths: string[]) => {
@@ -70,16 +90,18 @@ export default function Chat() {
   const loadInfo = async () => {
     const [c, m] = await Promise.all([
       supabase.from('conversations').select('kind,title,avatar_url,only_admins_add,created_by').eq('id', cid).maybeSingle(),
-      supabase.from('conversation_members').select('user_id,role,last_read_at,last_delivered_at,muted,profile:profiles!conversation_members_user_id_fkey(id,username,full_name,avatar_url,show_active,last_active_at)').eq('conversation_id', cid)])
+      supabase.from('conversation_members').select('user_id,role,last_read_at,last_delivered_at,muted,chat_bg,profile:profiles!conversation_members_user_id_fkey(id,username,full_name,avatar_url,show_active,last_active_at)').eq('conversation_id', cid)])
+    if (c.error || m.error) { if (conv === undefined) throw new Error((c.error ?? m.error)!.message); return }
     if (!c.data) return setConv(null)
-    const rows = (m.data ?? []) as any as Mem[]; setConv(c.data as Info); setMembers(rows); setMuted(!!rows.find(r => r.user_id === uid)?.muted)
+    const rows = (m.data ?? []) as any as Mem[]; setConv(c.data as Info); setMembers(rows); setMuted(!!rows.find(r => r.user_id === uid)?.muted); cacheSet(`info:${uid}:${cid}`, c.data); cacheSet(`mem:${uid}:${cid}`, rows)
     const o = rows.find(r => r.user_id !== uid); if ((c.data as any).kind === 'direct' && o) loadBlocks(o.user_id)
   }
   useEffect(() => {
     (async () => {
       await loadInfo()
-      const { data } = await supabase.from('messages').select('*, reactions:message_reactions(user_id,emoji)').eq('conversation_id', cid).order('created_at', { ascending: false }).limit(80)
-      const list = ((data ?? []) as Msg[]).reverse(); setMsgs(list); sign(list.map(m => m.attachment_path).filter(Boolean) as string[]); markRead()
+      const { data, error: loadErr } = await supabase.from('messages').select('*, reactions:message_reactions(user_id,emoji)').eq('conversation_id', cid).order('created_at', { ascending: false }).limit(80)
+      if (loadErr) return
+      const list = ((data ?? []) as Msg[]).reverse(); setMsgs([...list, ...msgsRef.current.filter(m => m.pending)]); sign(list.map(m => m.attachment_path).filter(Boolean) as string[]); markRead()
     })().catch(e => setErr(e.message))
     const ch = supabase.channel('chat-' + cid)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${cid}` }, (p: any) => { addMsg({ ...p.new, reactions: [] }); if (p.new.kind === 'system') loadInfo(); if (p.new.sender_id !== uid) { playNotify(); setTyping(null); markRead() } })
@@ -114,7 +136,12 @@ export default function Chat() {
       const { error } = await supabase.from('messages').update({ body: t, edited_at: new Date().toISOString() }).eq('id', editing.id)
       if (error) return setErr(human(error.message)); patchMsg({ id: editing.id, body: t, edited_at: new Date().toISOString() }); setEditing(null); setText(''); return
     }
-    setText(''); try { await insert({ kind: 'text', body: t }) } catch (e) { setErr(human((e as Error).message)); setText(t) }
+    setText('')
+    if (!navigator.onLine) {
+      const tmp = 'tmp-' + crypto.randomUUID(); const o = { tmp, body: t, reply_to: replyTo?.id ?? null }; cacheSet(outKey, [...(cacheGet<any[]>(outKey) ?? []), o])
+      addMsg({ id: tmp, conversation_id: cid, sender_id: uid, kind: 'text', body: t, reply_to: o.reply_to, attachment_path: null, attachment_name: null, attachment_type: null, attachment_size: null, audio_peaks: null, audio_ms: null, forwarded: false, pinned_at: null, edited_at: null, deleted_at: null, created_at: new Date().toISOString(), reactions: [], pending: true }); setReplyTo(null); return
+    }
+    try { await insert({ kind: 'text', body: t }) } catch (e) { setErr(human((e as Error).message)); setText(t) }
   }
   const upload = async (blob: Blob | File, ext: string, type: string) => {
     const path = `${uid}/${cid}/${crypto.randomUUID()}.${ext}`; const { error } = await supabase.storage.from('chat').upload(path, blob, { contentType: type }); if (error) throw error; return path
@@ -173,6 +200,12 @@ export default function Chat() {
       if (error) throw error; setFwd(null); playSend()
     } catch (x) { if (path) await supabase.storage.from('chat').remove([path]); setErr(human((x as Error).message)); setFwd(null) }
   }
+  const PRE: Record<string, string> = { aurora: 'linear-gradient(160deg,#0f2027,#2c5364)', dusk: 'linear-gradient(160deg,#42275a,#734b6d)', night: 'linear-gradient(160deg,#0f0c29,#302b63,#24243e)', forest: 'linear-gradient(160deg,#134e5e,#71b280)', rose: 'linear-gradient(160deg,#b24592,#f15f79)', ember: 'linear-gradient(160deg,#42275a,#e5383b)', black: '#000' }
+  const setBg = async (v: string | null) => { await supabase.from('conversation_members').update({ chat_bg: v }).eq('conversation_id', cid).eq('user_id', uid); setMembers(cur => cur.map(x => (x.user_id === uid ? { ...x, chat_bg: v } : x))); setThemeOpen(false) }
+  const pickBg = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = ''; if (!f) return
+    try { const path = `${uid}/theme-${crypto.randomUUID()}.jpg`; const { error } = await supabase.storage.from('chat').upload(path, await compress(f, 1280), { contentType: 'image/jpeg' }); if (error) throw error; await setBg('g:' + path) } catch (x) { setErr(human((x as Error).message)) }
+  }
   const toggleMute = async () => { const v = !muted; setMuted(v); setMenu(false); await supabase.from('conversation_members').update({ muted: v }).eq('conversation_id', cid).eq('user_id', uid) }
   const toggleBlock = async () => {
     setMenu(false); if (!other) return
@@ -186,8 +219,9 @@ export default function Chat() {
     setRepDone(error ? error.message : 'Thanks. We will review this report.')
   }
   const minimize = () => { if (!conv) return; addBubble({ id: cid, name: isGroup ? conv.title ?? 'Group' : other?.full_name || other?.username || 'Chat', avatar_url: isGroup ? conv.avatar_url : other?.avatar_url ?? null }); nav('/') }
-  if (conv === undefined) return <div className="fixed inset-0 z-40 grid place-items-center bg-bg text-mute">{err || 'Loading…'}</div>
-  if (!conv || (!isGroup && !other)) return <div className="fixed inset-0 z-40 grid place-items-center bg-bg p-6 text-center"><div><p className="mb-3 text-mute">Conversation not found.</p><button className="btn" onClick={() => nav('/textora')}>Back to TEXTORA</button></div></div>
+  if (conv === undefined) return <div className="fixed inset-0 z-40 grid place-items-center bg-bg p-6 text-center text-mute">{err ? 'Could not open this chat: ' + err : offline ? 'No saved copy of this chat yet. Connect to the internet to open it.' : 'Loading…'}</div>
+  if (!conv || (!isGroup && !other)) return <div className="fixed inset-0 z-40 grid place-items-center bg-bg p-6 text-center"><div><p className="mb-3 text-mute">Conversation not found.{err ? ' ' + err : ''}</p><button className="btn" onClick={() => nav('/textora')}>Back to TEXTORA</button></div></div>
+  const bgStyle = myBg?.startsWith('p:') && PRE[myBg.slice(2)] ? { background: PRE[myBg.slice(2)] } : bgUrl ? { backgroundImage: `linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.35)), url(${bgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined
   const myShow = profile?.show_active !== false; const typer = typing ? nameOf(typing).split(' ')[0] : ''
   const status = typing ? (isGroup ? `${typer} is typing…` : 'Typing…') : isGroup ? `${members.length} members` : other && typingMap[other.id] ? typingMap[other.id] : myShow && other ? statusOf(online.has(other.id), other.show_active, other.last_active_at) : ''
   const headName = isGroup ? conv.title ?? 'Group' : other!.full_name || other!.username
@@ -206,14 +240,14 @@ export default function Chat() {
       <button onClick={() => nav('/textora')} aria-label="Back" className="p-2"><ArrowLeft /></button>
       <button onClick={() => (isGroup ? setGroupInfo(true) : nav('/u/' + other!.username))} className="flex min-w-0 flex-1 items-center gap-3 text-left"><span className="relative"><Avatar a={headAv} s={40} />{!isGroup && myShow && other!.show_active && online.has(other!.id) && <i className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-bg bg-green-500" />}</span>
         <div className="min-w-0"><b className="flex items-center gap-1 truncate">{headName}{isGroup && <Users size={13} className="shrink-0 text-mute" />}</b><span className={`block truncate text-xs ${typing || (other && typingMap[other.id]) ? 'text-accent' : 'text-mute'}`}>{status}</span></div></button>
-      <button onClick={minimize} aria-label="Minimize to bubble" className="p-2 text-mute"><Minimize2 size={20} /></button>
+      {localStorage.getItem('bubblesOn') !== 'off' && <button onClick={minimize} aria-label="Minimize to bubble" className="p-2 text-mute"><Minimize2 size={20} /></button>}
       <button onClick={() => setSearchOn(!searchOn)} aria-label="Search in chat" className="p-2 text-mute"><Search size={20} /></button>
       <button onClick={() => setMenu(true)} aria-label="Menu" className="p-2 text-mute"><MoreVertical size={20} /></button></header>
     {searchOn && <div className="border-b border-line bg-surface p-2"><input autoFocus className="w-full rounded-full border border-line bg-bg px-4 py-2 outline-none" placeholder="Search in this chat" value={sq} onChange={e => setSq(e.target.value)} />
       <div className="max-h-48 overflow-y-auto">{sres.map(m => <button key={m.id} onClick={() => jump(m.id)} className="block w-full border-b border-line px-2 py-2 text-left text-sm"><span className="text-xs text-mute">{dayLabel(m.created_at)} · {nameOf(m.sender_id)}</span><p className="truncate">{m.body}</p></button>)}
         {sq.trim().length >= 2 && !sres.length && <p className="p-3 text-center text-sm text-mute">No messages found.</p>}</div></div>}
     {pinned && <button onClick={() => jump(pinned.id)} className="flex items-center gap-2 border-b border-line bg-surface px-3 py-1.5 text-left text-sm"><Pin size={14} className="shrink-0 text-accent" /><span className="truncate"><b>Pinned</b> · {label(pinned)}</span></button>}
-    <div className="flex-1 overflow-y-auto px-3 py-2">
+    <div className="flex-1 overflow-y-auto px-3 py-2" style={bgStyle}>
       {!msgs.length && <p className="py-16 text-center text-mute">No messages yet. Say hello 👋</p>}
       {msgs.map((m, i) => {
         const prev = msgs[i - 1], next = msgs[i + 1]; const d = dayLabel(m.created_at); const showDay = !prev || dayLabel(prev.created_at) !== d
@@ -232,17 +266,17 @@ export default function Chat() {
               {m.forwarded && !m.deleted_at && <p className="mb-0.5 text-[10px] italic opacity-70">↪ Forwarded</p>}
               {qt && <div className="mb-1 rounded-lg border-l-2 border-current bg-black/10 px-2 py-1 text-xs opacity-80"><b>{qt.who}</b><p className="line-clamp-2 break-words">{qt.text}</p></div>}
               {m.deleted_at ? <p className="italic opacity-70">This message was deleted</p>
-                : m.kind === 'image' ? (src ? <button onClick={() => setPeek(src)}><img src={src} alt="" className="max-h-64 rounded-xl" /></button> : <div className="h-32 w-40 animate-pulse rounded-xl bg-black/10" />)
-                : m.kind === 'video' ? (src ? <video src={src} controls playsInline preload="metadata" className="max-h-64 rounded-xl" /> : <div className="h-32 w-40 animate-pulse rounded-xl bg-black/10" />)
-                : m.kind === 'voice' ? (src ? <div className="text-ink"><VoicePlayer src={src} peaks={m.audio_peaks} ms={m.audio_ms} /></div> : <div className="h-10 w-48 animate-pulse rounded-full bg-black/10" />)
+                : m.kind === 'image' ? (src ? <button onClick={() => setPeek(src)}><img src={src} alt="" className="max-h-64 rounded-xl" /></button> : (offline ? <span className="text-xs opacity-70">Media · connect to view</span> : <div className="h-32 w-40 animate-pulse rounded-xl bg-black/10" />))
+                : m.kind === 'video' ? (src ? <video src={src} controls playsInline preload="metadata" className="max-h-64 rounded-xl" /> : (offline ? <span className="text-xs opacity-70">Media · connect to view</span> : <div className="h-32 w-40 animate-pulse rounded-xl bg-black/10" />))
+                : m.kind === 'voice' ? (src ? <div className="text-ink"><VoicePlayer src={src} peaks={m.audio_peaks} ms={m.audio_ms} /></div> : (offline ? <span className="text-xs opacity-70">Voice message · connect to play</span> : <div className="h-10 w-48 animate-pulse rounded-full bg-black/10" />))
                 : m.kind === 'file' ? <a href={src} target="_blank" rel="noreferrer" download={m.attachment_name ?? undefined} className="flex items-center gap-2"><FileText size={28} /><span className="min-w-0"><b className="block truncate text-sm">{m.attachment_name}</b><small>{size(m.attachment_size)}</small></span></a>
                 : <p className="whitespace-pre-wrap break-words">{m.body}</p>}
               {(m.pinned_at || m.edited_at) && !m.deleted_at && <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] opacity-70">{m.pinned_at && <Pin size={10} />}{m.edited_at && <span>edited</span>}</div>}
               {Object.keys(counts).length > 0 && <div className="mt-1 flex flex-wrap gap-1">{Object.entries(counts).map(([e, n]) => <span key={e} className="rounded-full bg-black/15 px-1.5 text-xs">{e} {n}</span>)}</div>}</div>
-            {!m.deleted_at && <button onClick={() => setSheet(m)} aria-label="Message options" className="p-1 text-mute opacity-50"><MoreHorizontal size={16} /></button>}</div>
+            {!m.deleted_at && !m.pending && <button onClick={() => setSheet(m)} aria-label="Message options" className="p-1 text-mute opacity-50"><MoreHorizontal size={16} /></button>}</div>
           {!sameN && <p className={`mt-0.5 flex items-center gap-1 text-[10px] text-mute ${mine ? 'justify-end' : 'ml-9'}`}>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             {mine && !m.deleted_at && m.id !== lastMine && (delivered(m) ? <CheckCheck size={12} /> : <Check size={12} />)}</p>}
-          {m.id === lastMine && !m.deleted_at && <div className="mt-0.5 flex justify-end gap-0.5">{rd.length ? <>{rd.slice(0, 5).map(r => <Avatar key={r.user_id} a={r.profile} s={14} />)}{rd.length > 5 && <span className="text-[10px] text-mute">+{rd.length - 5}</span>}</> : <span className="text-[10px] text-mute">{delivered(m) ? 'Delivered' : 'Sent'}</span>}</div>}</div>) })}
+          {m.id === lastMine && !m.deleted_at && <div className="mt-0.5 flex justify-end gap-0.5">{rd.length ? <>{rd.slice(0, 5).map(r => <Avatar key={r.user_id} a={r.profile} s={14} />)}{rd.length > 5 && <span className="text-[10px] text-mute">+{rd.length - 5}</span>}</> : <span className="text-[10px] text-mute">{m.pending ? 'Waiting for network…' : delivered(m) ? 'Delivered' : 'Sent'}</span>}</div>}</div>) })}
       {typing && <div className="mt-2 flex items-end gap-1"><div className="w-7 shrink-0"><Avatar a={prof(typing) ?? headAv} s={28} /></div><div aria-label="Typing" className="flex items-center gap-1 rounded-[20px] bg-surface px-4 py-3"><i className="tdot" /><i className="tdot" style={{ animationDelay: '.2s' }} /><i className="tdot" style={{ animationDelay: '.4s' }} /></div></div>}<div ref={endRef} /></div>
     <div className="border-t border-line bg-bg p-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
       {err && <p role="alert" className="px-2 pb-1 text-sm text-red-400">{err}</p>}
@@ -259,10 +293,15 @@ export default function Chat() {
     {sheet && <Sheet onClose={() => setSheet(null)}><div className="mb-3 flex justify-around">{QUICK.map(e => <button key={e} onClick={() => react(sheet, e)} className="text-3xl active:scale-125">{e}</button>)}</div>
       {actions.map(([I, l, fn, ok]) => ok && <button key={l} onClick={fn} className={`flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-bg ${l.startsWith('Delete') || l.startsWith('Report') ? 'text-red-400' : ''}`}><I size={20} />{l}</button>)}</Sheet>}
     {menu && <Sheet onClose={() => setMenu(false)}>
+      <button onClick={() => { setMenu(false); setThemeOpen(true) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-bg"><Palette size={20} className="text-accent" />Chat theme</button>
       {isGroup && <button onClick={() => { setMenu(false); setGroupInfo(true) }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-bg"><Users size={20} className="text-accent" />Group info & members</button>}
       <button onClick={toggleMute} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-bg">{muted ? <Bell size={20} className="text-accent" /> : <BellOff size={20} className="text-accent" />}{muted ? 'Unmute notifications' : 'Mute notifications'}</button>
       {!isGroup && <button onClick={toggleBlock} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-red-400 hover:bg-bg"><Ban size={20} />{iBlocked ? 'Unblock' : 'Block'}</button>}
       {!isGroup && <button onClick={() => { setMenu(false); setRep({ msg: null }); setRepDone('') }} className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-red-400 hover:bg-bg"><Flag size={20} />Report</button>}</Sheet>}
+    {themeOpen && <Sheet onClose={() => setThemeOpen(false)}><b className="mb-3 block">Chat theme</b>
+      <div className="grid grid-cols-4 gap-3">{Object.entries(PRE).map(([k, v]) => <button key={k} aria-label={k} onClick={() => setBg('p:' + k)} className="h-16 rounded-xl border-2" style={{ background: v, borderColor: myBg === 'p:' + k ? 'var(--accent)' : 'var(--line)' }} />)}</div>
+      <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3"><ImagePlus size={20} className="text-accent" />Choose from gallery<input type="file" accept="image/*" hidden onChange={pickBg} /></label>
+      <button onClick={() => setBg(null)} className="mt-2 w-full rounded-xl p-3 text-left text-mute hover:bg-bg">Reset to default</button></Sheet>}
     {rep && <Sheet onClose={() => setRep(null)}><b className="mb-2 block">Report</b>{repDone ? <p role="status" className="text-accent">{repDone}</p> : REASONS.map(r => <button key={r} onClick={() => report(r)} className="block w-full rounded-xl p-3 text-left hover:bg-bg">{r}</button>)}</Sheet>}
     {fwd && <Sheet onClose={() => setFwd(null)}><b className="mb-2 block">Forward to…</b>{!fwdList.length && <p className="py-4 text-center text-mute">No other conversations yet.</p>}
       {fwdList.map(c => <button key={c.id} onClick={() => forwardTo(c.id)} className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-bg"><Avatar a={convAv(c)} s={40} /><b className="truncate">{c.title}</b></button>)}</Sheet>}
